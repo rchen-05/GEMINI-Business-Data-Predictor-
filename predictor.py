@@ -1,5 +1,4 @@
 import pandas as pd
-
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor
@@ -10,7 +9,6 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
 from getRegressor import get_regressor
 
 
@@ -24,9 +22,11 @@ y = vgsales['Global_Sales']
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Initialize the model
-
+# Get the model that is suggested by the AI as a string output
 suggestedModel = get_regressor("vgsales.csv")
+
+# Model that will be used to train the data
+model = None
 
 if suggestedModel == "Linear":
     model = LinearRegression()

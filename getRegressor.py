@@ -2,6 +2,7 @@ import os
 import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample
 
+
 def get_regressor(input):
 
   genai.configure(api_key="AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI")
@@ -40,6 +41,7 @@ def get_regressor(input):
   ])
 
   print(str(response.parts[0])[7:-2])
+  return (str(response.parts[0])[7:-2])
 
 
 get_regressor("vgsales.csv")

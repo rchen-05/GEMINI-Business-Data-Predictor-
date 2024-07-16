@@ -1,5 +1,6 @@
 import csv
 
+
 def convert_csv_to_string(input_file):
     output_string = ""
     
@@ -9,6 +10,7 @@ def convert_csv_to_string(input_file):
             output_string += ",".join(row) + "\\n"
     
     return output_string
+
 
 def get_smaller_sample(csv_string): #get a smaller sample from the database
     lines = csv_string.split("\\n")
