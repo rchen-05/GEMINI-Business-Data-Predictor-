@@ -39,4 +39,7 @@ def get_regressor(input):
     "output: ",
   ])
 
-  print(response.parts[0])
+  print(str(response.parts[0])[7:-2])
+
+
+get_regressor("vgsales.csv")
