@@ -7,7 +7,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from getRegressor import get_regressor
 
@@ -19,29 +19,40 @@ vgsales = pd.read_csv('vgsales.csv')
 X = vgsales[['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']]
 y = vgsales['Global_Sales']
 
-# Split the data into training and testing sets
+# Split the data into training and testing sets (80% training, 20% testing)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Get the model that is suggested by the AI as a string output
-suggestedModel = get_regressor("vgsales.csv")
+# Initialize the model
+# suggestedModel = get_regressor("vgsales.csv")
+suggestedModel = "Linear"
+print("Suggested model: " + suggestedModel)
 
-# Model that will be used to train the data
-model = None
+# Mapping suggested models to their respective classes
+model_mapping = {
+    "Linear": LinearRegression(),
+    "DecisionTree": DecisionTreeRegressor(),
+    "RandomForest": RandomForestRegressor(random_state=42),
+}
 
-if suggestedModel == "Linear":
-    model = LinearRegression()
-elif suggestedModel == "DecisionTree":
-    model = DecisionTreeRegressor()
+if suggestedModel in model_mapping:
+    model = model_mapping[suggestedModel]
 elif suggestedModel == "Polynomial":
-    model = PolynomialFeatures(degree=2)
-elif suggestedModel == "RandomForest":
-    model = RandomForestRegressor(random_state=42)
+    poly = PolynomialFeatures(degree=2)  # can test with other degrees, e.g., 3, 4, 5
+    X_train = poly.fit_transform(X_train)
+    X_test = poly.transform(X_test)
+    model = LinearRegression()
+else:
+    raise ValueError("Unsupported model type: " + suggestedModel)
 
 # Train the model
 model.fit(X_train, y_train)
 
 # Make predictions
 predictions = model.predict(X_test)
+
+# Calculate the cross validation score
+cv_score = cross_val_score(model, X, y, cv=5)
+print("Cross Validation Score:", cv_score)
 
 # Evaluate the model using Mean Absolute Error
 mae = mean_absolute_error(y_test, predictions)
