@@ -21,27 +21,35 @@ def print_evaluation_metrics(y_test, predictions):
     print("R-squared:", r2)
 
 
-def find_best_split(X, y, model, suggestedModel):
+def find_best_split_and_degree(X, y, model, suggestedModel):
     best_score = float('-inf')  # Starts with negative infinity
     best_split = None
+    best_degree = None
+
+    if suggestedModel == "Polynomial":
+        degrees = [2, 3, 4, 5]  # Degrees to try: 2, 3, 4, 5
+    else:
+        degrees = [None]
 
     for test_size in [0.1, 0.2, 0.3, 0.4]:  # Split sizes to try: 10%, 20%, 30%, 40%
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+        for degree in degrees:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
 
-        if suggestedModel == "Polynomial":
-            poly = PolynomialFeatures(degree=2)
-            X_train = poly.fit_transform(X_train)
-            X_test = poly.transform(X_test)
+            if degree is not None:
+                poly = PolynomialFeatures(degree=degree)
+                X_train = poly.fit_transform(X_train)
+                X_test = poly.transform(X_test)
 
-        model.fit(X_train, y_train)
-        predictions = model.predict(X_test)
-        r2 = r2_score(y_test, predictions)
+            model.fit(X_train, y_train)
+            predictions = model.predict(X_test)
+            r2 = r2_score(y_test, predictions)
 
-        if r2 > best_score:
-            best_score = r2
-            best_split = test_size
+            if r2 > best_score:
+                best_score = r2
+                best_split = test_size
+                best_degree = degree
 
-    return best_split
+    return best_split, best_degree
 
 
 # Load the data
@@ -79,14 +87,16 @@ else:
     raise ValueError("Unsupported model type: " + suggestedModel)
 
 # Find the best split ratio
-best_split = find_best_split(X, y, model, suggestedModel)
+best_split, best_degree = find_best_split_and_degree(X, y, model, suggestedModel)
 print("Best split ratio:", best_split)
+if best_degree is not None:
+    print("Best degree for Polynomial Regression:", best_degree)
 
 # Split the data into training and testing sets using the best split ratio
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=best_split, random_state=42)
 
-if suggestedModel == "Polynomial":
-    poly = PolynomialFeatures(degree=2)
+if best_degree is not None:
+    poly = PolynomialFeatures(degree=best_degree)
     X_train = poly.fit_transform(X_train)
     X_test = poly.transform(X_test)
 
@@ -97,7 +107,7 @@ model.fit(X_train, y_train)
 predictions = model.predict(X_test)
 
 # Calculate the cross validation score
-if suggestedModel == "Polynomial":
+if best_degree is not None:
     X_poly = poly.fit_transform(X)
     cv_scores = cross_val_score(model, X_poly, y, cv=5)
 else:
