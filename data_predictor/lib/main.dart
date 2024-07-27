@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MaterialApp(
     home: MyHomePage(),
   ));
 }
+
+
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -17,19 +21,36 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final TextEditingController _textController = TextEditingController();
 
-  void geminiOutput() async {
+  Future<void> geminiOutput() async {
     if (_textController.text.isEmpty) {
       return;
     }
 
-    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw");
-    final content = [Content.text(_textController.text)];
-    final response = await model.generateContent(content);
-    print(response.text);
+    final csvContent = _textController.text;
+    final url = 'http://127.0.0.1:5001/get_regressor'; // Flask server URL
 
-    setState(() {
-      stringOutput = response.text!;
-    });
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"csv_content": csvContent}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          stringOutput = data['model'];
+        });
+      } else {
+        setState(() {
+          stringOutput = 'Error: ${response.reasonPhrase}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        stringOutput = 'An error occurred: $e';
+      });
+    }
   }
 
   @override
