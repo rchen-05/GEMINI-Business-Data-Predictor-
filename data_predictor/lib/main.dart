@@ -9,8 +9,6 @@ void main() {
   ));
 }
 
-
-
 class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -27,7 +25,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final csvContent = _textController.text;
-    final url = 'http://127.0.0.1:5001/get_regressor'; // Flask server URL
+    final url = 'http://127.0.0.1:5001/get_regressor';
+    // Flask server URL
 
     try {
       final response = await http.post(
