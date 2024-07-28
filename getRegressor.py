@@ -68,4 +68,8 @@ def get_regressor_route():
     return jsonify({"model": model})
 
 if __name__ == '__main__':
+<<<<<<< Updated upstream
     app.run(debug=True)
+=======
+    app.run(debug=True,port=5001)
+>>>>>>> Stashed changes
