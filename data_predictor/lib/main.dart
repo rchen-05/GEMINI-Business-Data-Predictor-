@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -9,13 +10,7 @@ void main() {
   ));
 }
 
-<<<<<<< Updated upstream
-
-
-class MyHomePage extends StatefulWidget {
-=======
 class ChatScreen extends StatefulWidget {
->>>>>>> Stashed changes
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
@@ -24,15 +19,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Map<String, String>> messages = [];
   final TextEditingController _textController = TextEditingController();
 
+
+
   Future<void> sendMessage() async {
     if (_textController.text.isEmpty) {
       return;
     }
 
-<<<<<<< Updated upstream
-    final csvContent = _textController.text;
-    final url = 'http://127.0.0.1:5001/get_regressor'; // Flask server URL
-=======
     final userMessage = _textController.text;
     final url = 'http://127.0.0.1:5001/chat'; // Flask server URL
 
@@ -40,7 +33,6 @@ class _ChatScreenState extends State<ChatScreen> {
       messages.add({"role": "user", "content": userMessage});
       _textController.clear();
     });
->>>>>>> Stashed changes
 
     try {
       final response = await http.post(
@@ -71,6 +63,25 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       setState(() {
         messages.add({"role": "ai", "content": 'An error occurred: $e'});
+      });
+    }
+  }
+  
+  Future<void> pickFile() async {
+    try{
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+      if (result != null){
+        String? filePath = result.files.single.path;
+        if (filePath != null){
+          messages.add({"role": "user", "content": 'Selected file: $filePath'});
+        }else{
+
+        }
+      }
+    } catch (e){
+      setState(() {
+        messages.add({"role": "ai", "content": 'An error occurred while picking the file: $e'});
       });
     }
   }
@@ -115,6 +126,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 IconButton(
                   icon: const Icon(Icons.send),
                   onPressed: sendMessage,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.file_upload),
+                  onPressed: pickFile,
                 ),
               ],
             ),
