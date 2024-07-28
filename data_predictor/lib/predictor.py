@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from getRegressor import get_regressor
+from getParameters import get_parameters
 
 
 def print_evaluation_metrics(y_test, predictions):
@@ -56,7 +57,7 @@ def find_best_split_and_degree(X, y, model, suggestedModel):
 vgsales = pd.read_csv('vgsales.csv')
 
 # Prepare the features and target variable
-X = vgsales[['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']]
+X = vgsales[get_parameters("vgsales.csv").split(',')]
 y = vgsales['Global_Sales']
 
 # Split the data into training and testing sets (80% training, 20% testing)
@@ -64,7 +65,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 # Initialize the model - get suggested model from the API
 # suggestedModel = get_regressor("vgsales.csv")
-suggestedModel = "Linear"
+suggestedModel = get_regressor("vgsales.csv")
 print("Suggested model: " + suggestedModel)
 
 # Mapping suggested models to their respective classes

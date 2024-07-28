@@ -25,6 +25,7 @@ generation_config = {
 }
 
 def get_regressor(input_csv):
+    print("Getting regressor")
     try:
         model = genai.GenerativeModel(
             model_name="gemini-1.0-pro",
@@ -55,7 +56,7 @@ def get_regressor(input_csv):
         """
 
         response = model.generate_content([prompt])
-        suggested_model = response.parts[0].strip()
+        suggested_model = str(response.parts[0])[7:-2]
         return suggested_model
     except Exception as e:
         logging.error(f"An error occurred: {e}")
