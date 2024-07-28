@@ -1,19 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
+  <script defer src="main.dart.js"></script>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -34,5 +22,21 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js"></script>
+  <script type="module">
+    var firebaseConfig = {
+      apiKey: 'AIzaSyCzBt-9HzTi5eVDKJ728Hha6Em1ebs4fEw',
+      appId: '1:408279633368:web:812409e43b1e0a1c54f6ad',
+      messagingSenderId: '408279633368',
+      projectId: 'data-predictor-32a58',
+      authDomain: 'data-predictor-32a58.firebaseapp.com',
+      storageBucket: 'data-predictor-32a58.appspot.com',
+      measurementId: 'G-XPXXV293SC',
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig)
+  </script>
+  <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>

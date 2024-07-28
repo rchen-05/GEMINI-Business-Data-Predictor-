@@ -1,13 +1,27 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
-
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'firebase_options.dart';
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: 'AIzaSyCzBt-9HzTi5eVDKJ728Hha6Em1ebs4fEw',
+      appId: '1:408279633368:web:812409e43b1e0a1c54f6ad',
+      messagingSenderId: '408279633368',
+      projectId: 'data-predictor-32a58',
+      authDomain: 'data-predictor-32a58.firebaseapp.com',
+      storageBucket: 'data-predictor-32a58.appspot.com',
+      measurementId: 'G-XPXXV293SC',
+    )
+  );
   runApp(MaterialApp(
     home: ChatScreen(),
   ));
+ 
 }
 
 class ChatScreen extends StatefulWidget {
@@ -18,8 +32,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final List<Map<String, String>> messages = [];
   final TextEditingController _textController = TextEditingController();
-
-
 
   Future<void> sendMessage() async {
     if (_textController.text.isEmpty) {
@@ -66,23 +78,17 @@ class _ChatScreenState extends State<ChatScreen> {
       });
     }
   }
-  
+
   Future<void> pickFile() async {
-    try{
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-      if (result != null){
-        String? filePath = result.files.single.path;
-        if (filePath != null){
-          messages.add({"role": "user", "content": 'Selected file: $filePath'});
-        }else{
+    if (result != null && result.files.isNotEmpty) {
+      final fileBytes = result.files.first.bytes;
+      final fileName = result.files.first.name;
 
-        }
+      if (fileBytes != null) {
+        FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes);
       }
-    } catch (e){
-      setState(() {
-        messages.add({"role": "ai", "content": 'An error occurred while picking the file: $e'});
-      });
     }
   }
 
@@ -102,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 final message = messages[index];
                 final isUser = message['role'] == 'user';
                 return ListTile(
-                  title: Text(
+                  title: SelectableText(
                     message['content']!,
                     textAlign: isUser ? TextAlign.end : TextAlign.start,
                   ),

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "408279633368",
+    "project_id": "data-predictor-32a58",
+    "storage_bucket": "data-predictor-32a58.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408279633368:android:8d61b86531a5c07754f6ad",
+        "android_client_info": {
+          "package_name": "com.datapredictor.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvN0z4U70p2NnCKfnLuZPYc30lvPWE9iU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408279633368:android:7986f93a9921598e54f6ad",
+        "android_client_info": {
+          "package_name": "com.example.data_predictor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvN0z4U70p2NnCKfnLuZPYc30lvPWE9iU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
