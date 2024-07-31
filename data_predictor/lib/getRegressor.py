@@ -54,7 +54,7 @@ def chat_route():
 
 
 
-#def get_regressor(input_csv):
+def get_regressor(input_csv):
     print("Getting regressor")
     try:
         model = genai.GenerativeModel(
@@ -91,9 +91,9 @@ def chat_route():
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         return f"An error occurred: {e}", 500
-#@app.route('/get_regressor', methods=['POST'])
+@app.route('/get_regressor', methods=['POST'])
 
-#def get_regressor_route():
+def get_regressor_route():
     data = request.get_json()
     csv_content = data.get('csv_content')
     if not csv_content:

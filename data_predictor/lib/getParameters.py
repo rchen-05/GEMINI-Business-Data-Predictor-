@@ -27,6 +27,11 @@ def get_parameters(input_csv):
     csv_string = convert_csv_to_string(input_csv)
     smaller_sample = get_smaller_sample(csv_string)
 
+    prompt = f"Based on the data input, I want you to decide the appropriate parameters for the feature matrix. List the parameters separated by commas. For example, your output should look like this:\n\n\"Feature_X,Feature_Y,Feature_Z\",
+    
+        input: {smaller_sample},
+        output: "
+
     response = model.generate_content([
         "Based on the data input, I want you to decide the appropriate parameters for the feature matrix. List the parameters separated by commas. For example, your output should look like this:\n\n\"Feature_X,Feature_Y,Feature_Z\"",
         "input: Rank,Name,Platform,Year,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales1,Wii Sports,Wii,2006,Sports,Nintendo,41.49,29.02,3.77,8.46,82.742,Super Mario Bros.,NES,1985,Platform,Nintendo,29.08,3.58,6.81,0.77,40.243,Mario Kart Wii,Wii,2008,Racing,Nintendo,15.85,12.88,3.79,3.31,35.824,Wii Sports Resort,Wii,2009,Sports,Nintendo,15.75,11.01,3.28,2.96,335,Pokemon Red/Pokemon Blue,GB,1996,Role-Playing,Nintendo,11.27,8.89,10.22,1,31.376,Tetris,GB,1989,Puzzle,Nintendo,23.2,2.26,4.22,0.58,30.267,New Super Mario Bros.,DS,2006,Platform,Nintendo,11.38,9.23,6.5,2.9,30.018,Wii Play,Wii,2006,Misc,Nintendo,14.03,9.2,2.93,2.85,29.029,New Super Mario Bros. Wii,Wii,2009,Platform,Nintendo,14.59,7.06,4.7,2.26,28.6210,Duck Hunt,NES,1984,Shooter,Nintendo,26.93,0.63,0.28,0.47,28.3111,Nintendogs,DS,2005,Simulation,Nintendo,9.07,11,1.93,2.75,24.7612,Mario Kart DS,DS,2005,Racing,Nintendo,9.81,7.57,4.13,1.92,23.4213,Pokemon Gold/Pokemon Silver,GB,1999,Role-Playing,Nintendo,9,6.18,7.2,0.71,23.114,Wii Fit,Wii,2007,Sports,Nintendo,8.94,8.03,3.6,2.15,22.7215,Wii Fit Plus,Wii,2009,Sports,Nintendo,9.09,8.59,2.53,1.79,2216,Kinect Adventures!,X360,2010,Misc,Microsoft Game Studios,14.97,4.94,0.24,1.67,21.8217,Grand Theft Auto V,PS3,2013,Action,Take-Two Interactive,7.01,9.27,0.97,4.14,21.4",
@@ -39,6 +44,7 @@ def get_parameters(input_csv):
         "output: ",
         ])
     parameters = str(response.parts[0])[7:-2]
+    print(parameters)
     return parameters
     
     
