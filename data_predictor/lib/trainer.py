@@ -62,8 +62,7 @@ def main(input_file):
     # Detect features and target variable
     parameters = get_parameters(input_file).split(',')
     X = df[parameters]
-    y = df['Type of Coffee Consumed']
-
+    y = df['Global_Sales']
     # Initialize the model - get suggested model from the API
     suggested_model = get_regressor(input_file)
     print("Suggested model: " + suggested_model)
@@ -130,4 +129,4 @@ def main(input_file):
     print("Predicted global sales:", predicted_sales)
 
 # Call the main function with the input CSV file
-main('coffee.csv')
+main('vgsales.csv')
