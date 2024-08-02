@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from getRegressor import get_regressor
 from getParameters import get_parameters
+from sklearn.preprocessing import LabelEncoder
 
 def print_evaluation_metrics(y_test, predictions):
     mae = mean_absolute_error(y_test, predictions)
@@ -55,12 +56,21 @@ def predict_sales(data, model, parameters, poly=None):
     prediction = model.predict(df)
     return prediction[0]
 
+def label_encode(df):
+    le = LabelEncoder()
+    for column in df.columns:
+        if df[column].dtype == 'object':
+            df[column] = le.fit_transform(df[column])
+    return df
+
 def main(input_file):
     # Load the data
     df = pd.read_csv(input_file)
+    df = label_encode(df)
 
     # Detect features and target variable
-    parameters = get_parameters(input_file).split(',')
+    parameters = get_parameters(input_file,'Global_Sales').split(',')
+    # parameters = ['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']
     X = df[parameters]
     y = df['Global_Sales']
     # Initialize the model - get suggested model from the API
