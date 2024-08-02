@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from getRegressor import get_regressor
 from getParameters import get_parameters
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
@@ -61,6 +61,15 @@ def predict_sales(data, model, parameters, preprocessor, poly=None):
         df_encoded = poly.transform(df_encoded)
     prediction = model.predict(df_encoded)
     return prediction[0]
+
+
+# Old encoding method - replace with this method if other one does not work
+# def label_encode(df):
+#     le = LabelEncoder()
+#     for column in df.columns:
+#         if df[column].dtype == 'object':
+#             df[column] = le.fit_transform(df[column])
+#     return df
 
 
 def preprocess_data(X, categorical_columns):
