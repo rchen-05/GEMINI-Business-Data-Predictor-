@@ -40,8 +40,8 @@ def generate_response(user_input):
         ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
         return ai_response
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
-        return f"An error occurred: {e}"
+        logging.error("An error occurred: {e}")
+        return "An error occurred: {e}"
 
 @app.route('/chat', methods=['POST'])
 def chat_route():
