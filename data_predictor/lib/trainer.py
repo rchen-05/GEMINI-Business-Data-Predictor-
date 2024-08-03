@@ -12,6 +12,7 @@ from getParameters import get_parameters
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 
 
 def print_evaluation_metrics(y_test, predictions):
@@ -73,12 +74,20 @@ def predict_sales(data, model, parameters, preprocessor, poly=None):
 
 
 def preprocess_data(X, categorical_columns):
+    # Handling missing data
+    numeric_columns = X.select_dtypes(include=['int64', 'float64']).columns
+    numeric_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+    ])
+
     categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
         ('onehot', OneHotEncoder(handle_unknown='ignore', sparse=False))
     ])
 
     preprocessor = ColumnTransformer(
         transformers=[
+            ('num', numeric_transformer, numeric_columns),
             ('cat', categorical_transformer, categorical_columns)
         ],
         remainder='passthrough'
@@ -86,8 +95,9 @@ def preprocess_data(X, categorical_columns):
 
     X_encoded = preprocessor.fit_transform(X)
 
-    onehot_columns = preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names(categorical_columns)
-    feature_names = list(onehot_columns) + list(X.columns.drop(categorical_columns))
+    onehot_columns = preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_columns)
+    # feature_names = list(onehot_columns) + list(X.columns.drop(categorical_columns))
+    feature_names = list(onehot_columns) + list(numeric_columns)
 
     return X_encoded, feature_names, preprocessor
 
@@ -121,7 +131,7 @@ def main(input_file):
     model_mapping = {
         "Linear": LinearRegression(),
         "DecisionTree": DecisionTreeRegressor(),
-        "RandomForest": RandomForestRegressor(random_state=42),
+        "RandomForest": RandomForestRegressor(n_estimators=100, max_depth=10, n_jobs=-1, random_state=42),
         "GradientBoosting": GradientBoostingRegressor(random_state=42),
         "SupportVector": SVR(),
         "KNearestNeighbours": KNeighborsRegressor(),
@@ -174,10 +184,16 @@ def main(input_file):
         while True:
             value = input(f"Enter value for {param}: ")
             try:
-                user_data[param] = type(X[param].iloc[0])(value)  # Convert to the correct type
+                if param in ['Year', 'Rank']:
+                    user_data[param] = int(value)
+                elif param in ['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales', 'Global_Sales']:
+                    user_data[param] = float(value)
+                else:
+                    user_data[param] = value
+                # user_data[param] = type(X[param].iloc[0])(value)  # Convert to the correct type
                 break
             except ValueError:
-                print("Invalid input. Please try again.")
+                print("Invalid input for parameter: {}. Please try again.".format(param))
 
         # value = input(f"Enter value for {param}: ")
         # user_data[param] = type(X[param].iloc[0])(value)  # Convert to the correct type

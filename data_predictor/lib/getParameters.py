@@ -5,7 +5,8 @@ import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample, get_all_parameters
 
 # Check environment variable
-api_key = "AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI"
+# api_key = "AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI"
+api_key = "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw"
 
 genai.configure(api_key=api_key)
 
