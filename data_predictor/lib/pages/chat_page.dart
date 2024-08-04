@@ -149,7 +149,7 @@ class _ChatPageState extends State<ChatPage> {
                 animatedTexts: [
                   TyperAnimatedText(
                     currentMessage.text,
-                    speed: const Duration(milliseconds: 30),
+                    speed: const Duration(milliseconds: 9),
                     textStyle: const TextStyle(
                       fontSize: 16,
                       color: Colors.white,
