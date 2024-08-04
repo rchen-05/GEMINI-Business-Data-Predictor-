@@ -13,6 +13,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
+import joblib
 
 
 def print_evaluation_metrics(y_test, predictions):
@@ -110,7 +111,7 @@ def main(input_file):
         raise ValueError("Target variable 'Global_Sales' not found in the dataset.")
 
     # Detect features and target variable
-    parameters = get_parameters(input_file, 'Global_Sales').split(',')
+    parameters = get_parameters(input_file, 'Global_Sales').split(',')  # Get the parameters from the API
     print("Selected parameters:", parameters)
     X = df[parameters]
     y = df['Global_Sales']
@@ -124,7 +125,7 @@ def main(input_file):
     X_encoded = pd.DataFrame(X_encoded, columns=feature_names)
 
     # Initialize the model - get suggested model from the API
-    suggested_model = get_regressor(input_file)
+    suggested_model = get_regressor(input_file)  # Get the suggested model from the API
     print("Suggested model: " + suggested_model)
 
     # Mapping suggested models to their respective classes
@@ -162,6 +163,9 @@ def main(input_file):
 
     # Train the model
     model.fit(X_train, y_train)
+    model_filename = 'trained_model.pkl'
+    joblib.dump(model, model_filename)
+    print("Model saved as:", model_filename)
 
     # Make predictions
     predictions = model.predict(X_test)
@@ -203,4 +207,5 @@ def main(input_file):
     print("Predicted global sales:", predicted_sales)
 
 # Call the main function with the input CSV file
-main('vgsales.csv')
+# main('vgsales.csv')
+main('synthetic_vgsales_50.csv')
