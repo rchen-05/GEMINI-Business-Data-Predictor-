@@ -107,14 +107,16 @@ def main(input_file):
     # Load the data
     df = pd.read_csv(input_file)
 
-    if 'Global_Sales' not in df.columns:
-        raise ValueError("Target variable 'Global_Sales' not found in the dataset.")
+    # if 'Global_Sales' not in df.columns:
+    #     raise ValueError("Target variable 'Global_Sales' not found in the dataset.")
 
     # Detect features and target variable
-    parameters = get_parameters(input_file, 'Global_Sales').split(',')  # Get the parameters from the API
+    parameters = get_parameters(input_file, 'Coffee Consumption (kg per capita per year)').split(',')
+    # parameters = get_parameters(input_file, 'Global_Sales').split(',')  # Get the parameters from the API
     print("Selected parameters:", parameters)
     X = df[parameters]
-    y = df['Global_Sales']
+    y = df['Coffee Consumption (kg per capita per year)']
+    # y = df['Global_Sales']
 
     categorical_columns = X.select_dtypes(include=['object']).columns
 
@@ -190,7 +192,7 @@ def main(input_file):
             try:
                 if param in ['Year', 'Rank']:
                     user_data[param] = int(value)
-                elif param in ['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales', 'Global_Sales']:
+                elif param in ['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales', 'Global_Sales', 'Coffee Consumption (kg per capita per year)']:
                     user_data[param] = float(value)
                 else:
                     user_data[param] = value
@@ -204,8 +206,10 @@ def main(input_file):
 
     # Predict sales for the given user data
     predicted_sales = predict_sales(user_data, model, parameters, preprocessor, poly if best_degree is not None else None)
-    print("Predicted global sales:", predicted_sales)
+    # print("Predicted global sales:", predicted_sales)
+    print("Predicted Coffee Consumption (kg per capita per year)", predicted_sales)
 
 # Call the main function with the input CSV file
 # main('vgsales.csv')
-main('synthetic_vgsales_50.csv')
+# main('synthetic_vgsales_50.csv')
+main('coffee.csv')
