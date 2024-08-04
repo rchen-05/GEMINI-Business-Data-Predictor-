@@ -7,9 +7,83 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'firebase_options.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+Future<List<String>> getAllDocumentIds(String collectionPath) async {
+  const batchSize = 100; // Adjust batch size if needed
+  final documentIds = <String>[];
+  bool hasMore = true;
+  DocumentSnapshot? lastDoc;
+
+  while (hasMore) {
+    Query query = FirebaseFirestore.instance.collection(collectionPath).limit(batchSize);
+
+    if (lastDoc != null) {
+      query = query.startAfterDocument(lastDoc);
+    }
+
+    final snapshot = await query.get();
+    
+    if (snapshot.docs.isEmpty) {
+      hasMore = false;
+    } else {
+      for (var doc in snapshot.docs) {
+        documentIds.add(doc.id);
+      }
+      lastDoc = snapshot.docs.last;
+    }
+  }
+
+  return documentIds;
+}
+Future<void> clearDatabase(List<String> conversationIDs) async {
+  for (var id in conversationIDs){
+    await deleteAllMessages(id);
+    await deleteConversation(id);
+  }
+}
+Future<void> deleteConversation(String conversationId) async {
+  try {
+    final conversationRef = FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(conversationId);
+
+    // Delete the conversation document
+    await conversationRef.delete();
+    print('Conversation deleted successfully.');
+  } catch (e) {
+    print('Error deleting conversation: $e');
+  }
+}
+Future<void> deleteAllMessages(String conversationId) async {
+  try {
+    final messagesCollectionRef = FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages');
+
+    // Fetch all documents in the Messages subcollection
+    final snapshot = await messagesCollectionRef.get();
+
+    // Check if there are any documents
+    if (snapshot.docs.isEmpty) {
+      print('No messages to delete.');
+      return;
+    }
+
+    // Delete each document
+    final batch = FirebaseFirestore.instance.batch();
+    for (var doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Commit the batch
+    await batch.commit();
+    print('All messages deleted successfully.');
+  } catch (e) {
+    print('Error deleting messages: $e');
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,11 +98,10 @@ Future<void> main() async {
       measurementId: 'G-XPXXV293SC',
     ) 
   );
+  print('Firebase initialized');
   runApp(MaterialApp(
     home: MyApp(),
-  ));
-
- 
+  )); 
 }
 
 
@@ -48,25 +121,17 @@ class MyApp extends StatelessWidget{
 }
 class SplashScreen extends StatelessWidget {
   Future<String> _createNewConversation() async {
-    // Clear existing conversations and messages
-    await _clearFirestoreData();
-
+    deleteAllMessages('2TVl17L9Riha8KnkAw10');
+    final conversationIds = await getAllDocumentIds('conversations');
+    await clearDatabase(conversationIds);
+    print('Existing conversation IDs: $conversationIds'); // Log the IDs for debugging
     // Create a new conversation ID
     final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id;
     print('New conversation ID: $newConversationId'); // Log the ID for debugging
     return newConversationId;
   }
 
-  Future<void> _clearFirestoreData() async {
-    final fireStore = FirebaseFirestore.instance;
-    final collectionRef = fireStore.collection('conversations');
-    final snapshot = await collectionRef.get();
-    final batch = fireStore.batch();
-    for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
-    }
-    await batch.commit();
-}
+  
 
   @override
   Widget build(BuildContext context) {

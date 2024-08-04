@@ -28,14 +28,18 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    print('Initializing chat');
     _initializeChat();
   }
 
   Future<void> _initializeChat() async {
-    // Check if the conversation is empty and send a default message
+    // Fetch initial messages from Firestore
     final messages = await _chatService.getMessagesOnce(widget.conversationId);
+    print('Number of messages: ${messages.length}'); // Log the number of messages
+
     if (messages.isEmpty) {
-      _sendInitialMessage();
+      // Send the initial message only if there are no messages
+      await _sendInitialMessage();
     }
   }
 
@@ -45,6 +49,8 @@ class _ChatPageState extends State<ChatPage> {
       createdAt: DateTime.now(),
       user: _geminiUser,
     );
+
+    // Save the initial message to Firestore
     await _chatService.saveMessageToFirestore(widget.conversationId, initialMessage);
   }
 
@@ -63,50 +69,43 @@ class _ChatPageState extends State<ChatPage> {
         final data = jsonDecode(response.body);
         final aiResponse = data['response'];
         if (aiResponse is String) {
+          final aiMessage = ChatMessage(
+            text: aiResponse,
+            createdAt: DateTime.now(),
+            user: _geminiUser,
+          );
           setState(() {
-            _messages.insert(
-              0,
-              ChatMessage(
-                text: aiResponse,
-                createdAt: DateTime.now(),
-                user: _geminiUser,
-              ),
-            );
+            _messages.insert(0, aiMessage);
           });
+          _chatService.saveMessageToFirestore(widget.conversationId, aiMessage);
         } else {
+          final errorMessage = ChatMessage(
+            text: 'Error: Unexpected response format',
+            createdAt: DateTime.now(),
+            user: _geminiUser,
+          );
           setState(() {
-            _messages.insert(
-              0,
-              ChatMessage(
-                text: 'Error: Unexpected response format',
-                createdAt: DateTime.now(),
-                user: _geminiUser,
-              ),
-            );
+            _messages.insert(0, errorMessage);
           });
         }
       } else {
+        final errorMessage = ChatMessage(
+          text: 'Error: ${response.reasonPhrase}',
+          createdAt: DateTime.now(),
+          user: _geminiUser,
+        );
         setState(() {
-          _messages.insert(
-            0,
-            ChatMessage(
-              text: 'Error: ${response.reasonPhrase}',
-              createdAt: DateTime.now(),
-              user: _geminiUser,
-            ),
-          );
+          _messages.insert(0, errorMessage);
         });
       }
     } catch (e) {
+      final errorMessage = ChatMessage(
+        text: 'An error occurred: $e',
+        createdAt: DateTime.now(),
+        user: _geminiUser,
+      );
       setState(() {
-        _messages.insert(
-          0,
-          ChatMessage(
-            text: 'An error occurred: $e',
-            createdAt: DateTime.now(),
-            user: _geminiUser,
-          ),
-        );
+        _messages.insert(0, errorMessage);
       });
     }
     setState(() {
@@ -219,8 +218,9 @@ class _ChatPageState extends State<ChatPage> {
                     onPressed: () {
                       // Optionally, you can trigger a default message here
                       _sendInitialMessage();
+                      _startNewConversation();
                     },
-                    child: const Text('Send Initial Message'),
+                    child: const Text('Create New Chat'),
                   ),
                 ],
               );
@@ -267,10 +267,9 @@ class _ChatPageState extends State<ChatPage> {
                 onSend: (ChatMessage message) {
                   setState(() {
                     _messages.insert(0, message);
-                    _typingUsers.add(_geminiUser);
                   });
                   _chatService.saveMessageToFirestore(widget.conversationId, message);
-                  getChatResponse(message);
+                  getChatResponse(message); // This will trigger an update in the stream
                 },
                 messages: messages,
               );
@@ -283,6 +282,13 @@ class _ChatPageState extends State<ChatPage> {
 
   void _startNewConversation() async {
     final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id;
+    // make the initial message and add it 
+    final initialMessage = ChatMessage(
+      text: 'Hello, how can I help you today?',
+      createdAt: DateTime.now(),
+      user: _geminiUser,
+    );
+    await _chatService.saveMessageToFirestore(newConversationId, initialMessage);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
