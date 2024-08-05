@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:data_predictor/utilities/chat_utilities.dart';
+import 'package:data_predictor/services/chat_utilities.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationId;
@@ -23,10 +23,16 @@ class _ChatPageState extends State<ChatPage> {
   final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby'); // Current user details
   final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man'); // AI user details
   final List<ChatUser> _typingUsers = <ChatUser>[]; // List of users currently typing
+  String? latestConversationId; // Store the latest conversation ID
 
   @override
   void initState() {
     super.initState();
+    _fetchLatestConversationId().then((id) {
+      setState(() {
+        latestConversationId = id;
+      });
+    });
     print('Initializing chat');
     _initializeChat(); // Initialize chat when the widget is first built
   }
@@ -142,7 +148,7 @@ class _ChatPageState extends State<ChatPage> {
       // Add the conversation ID and last message to the list
       conversationHistories.add({
         'id': conversation.id,
-        'lastMessage': lastMessage,
+        'lastMessage': _truncateMessage(lastMessage, 30), // Truncate the message to 30 characters
       });
     }
 
@@ -178,6 +184,26 @@ class _ChatPageState extends State<ChatPage> {
       sendButton() // Add send button as an input option
     ];
   }
+  // Helper function to truncate messages
+  String _truncateMessage(String message, int limit) {
+    if (message.length > limit) {
+      return '${message.substring(0, limit)}...';
+    }
+    return message;
+  }
+  Future<String?> _fetchLatestConversationId() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('conversations')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      return querySnapshot.docs.first.id;
+    }
+    return null;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +315,7 @@ class _ChatPageState extends State<ChatPage> {
                   containerColor: const Color.fromARGB(255, 184, 60, 22),
                   textColor: Colors.white,
                   messageTextBuilder: (currentMessage, previousMessage, nextMessage) {
-                    if (currentMessage.user.id == _geminiUser.id && nextMessage == null) {
+                    if (currentMessage.user.id == _geminiUser.id && nextMessage == null && latestConversationId ==  widget.conversationId) {
                       return AnimatedTextKit(
                         animatedTexts: [
                           TyperAnimatedText(

@@ -8,11 +8,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:data_predictor/main.dart';
+import 'package:data_predictor/pages/chat_page.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(ChatScreen());
+    await tester.pumpWidget(ChatPage(conversationId: 'default-conversation-id'));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

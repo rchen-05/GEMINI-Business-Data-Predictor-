@@ -1,53 +1,7 @@
 
-import 'package:data_predictor/pages/home_page.dart';
-import 'package:data_predictor/services/auth/auth_gate.dart';
-import 'package:data_predictor/services/auth/auth_service.dart';
-import 'package:data_predictor/services/auth/login_or_register.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:http/http.dart' as http;
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
-
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: 'AIzaSyCzBt-9HzTi5eVDKJ728Hha6Em1ebs4fEw',
-      appId: '1:408279633368:web:812409e43b1e0a1c54f6ad',
-      messagingSenderId: '408279633368',
-      projectId: 'data-predictor-32a58',
-      authDomain: 'data-predictor-32a58.firebaseapp.com',
-      storageBucket: 'data-predictor-32a58.appspot.com',
-      measurementId: 'G-XPXXV293SC',
-    ) 
-  );
-  print('Firebase initialized');
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => AuthService(),
-      child: MyApp(),
-    ),
-  );
-}
-
-
-class MyApp extends StatelessWidget{
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context){
-    return MaterialApp(
-      title: 'Data Predictor',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 184, 60, 22)),
-      ),
-      home: AuthGate(),
-    );
-  }
-}
+import 'package:data_predictor/pages/chat_page.dart';
+import 'package:flutter/material.dart';
 
 Future<List<String>> getAllDocumentIds(String collectionPath) async {
   const batchSize = 100; // Adjust batch size if needed
@@ -125,3 +79,40 @@ Future<void> deleteAllMessages(String conversationId) async {
   }
 }
 
+
+
+
+
+
+class HomePage extends StatelessWidget {
+  Future<String> _createNewConversation() async {
+    final conversationIds = await getAllDocumentIds('conversations');
+    await clearDatabase(conversationIds);
+    final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id;
+    return newConversationId;
+  }
+
+  
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _createNewConversation(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        } else {
+          final conversationId = snapshot.data!;
+          // Navigate to ChatPage with the new conversation ID
+          return ChatPage(conversationId: conversationId);
+        }
+      },
+    );
+  }
+}
