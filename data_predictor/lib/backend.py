@@ -5,7 +5,7 @@ import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_all_parameters, get_smaller_sample
 import logging
 from getTargetVariable import get_target_variable
-from trainer import everything
+from trainer import main
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
