@@ -13,7 +13,7 @@ class ChatPage extends StatefulWidget {
   final String conversationId;
 
   const ChatPage({super.key, required this.conversationId});
-  
+
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
@@ -21,8 +21,10 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final ChatService _chatService = ChatService();
   final List<ChatMessage> _messages = <ChatMessage>[];
-  final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby');
-  final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man');
+  final ChatUser _currentUser =
+      ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby');
+  final ChatUser _geminiUser =
+      ChatUser(id: '2', firstName: 'Ai', lastName: 'man');
   final List<ChatUser> _typingUsers = <ChatUser>[];
 
   @override
@@ -35,7 +37,8 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _initializeChat() async {
     // Fetch initial messages from Firestore
     final messages = await _chatService.getMessagesOnce(widget.conversationId);
-    print('Number of messages: ${messages.length}'); // Log the number of messages
+    print(
+        'Number of messages: ${messages.length}'); // Log the number of messages
 
     if (messages.isEmpty) {
       // Send the initial message only if there are no messages
@@ -45,13 +48,15 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _sendInitialMessage() async {
     final initialMessage = ChatMessage(
-      text: 'Hello, how can I help you today?',
+      text:
+          'Hello, please upload your data file. Then, tell me what you would like to predict.',
       createdAt: DateTime.now(),
       user: _geminiUser,
     );
 
     // Save the initial message to Firestore
-    await _chatService.saveMessageToFirestore(widget.conversationId, initialMessage);
+    await _chatService.saveMessageToFirestore(
+        widget.conversationId, initialMessage);
   }
 
   Future<void> getChatResponse(ChatMessage message) async {
@@ -122,7 +127,9 @@ class _ChatPageState extends State<ChatPage> {
 
       if (fileBytes != null) {
         try {
-          await FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes);
+          await FirebaseStorage.instance
+              .ref('uploads/$fileName')
+              .putData(fileBytes);
         } catch (e) {
           print('Error uploading file: $e');
         }
@@ -138,9 +145,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   List<Widget> inputOptions() {
-    return [
-      sendButton()
-    ];
+    return [sendButton()];
   }
 
   @override
@@ -238,8 +243,10 @@ class _ChatPageState extends State<ChatPage> {
                   currentUserContainerColor: Colors.black,
                   containerColor: const Color.fromARGB(255, 184, 60, 22),
                   textColor: Colors.white,
-                  messageTextBuilder: (currentMessage, previousMessage, nextMessage) {
-                    if (currentMessage.user.id == _geminiUser.id && nextMessage == null) {
+                  messageTextBuilder:
+                      (currentMessage, previousMessage, nextMessage) {
+                    if (currentMessage.user.id == _geminiUser.id &&
+                        nextMessage == null) {
                       return AnimatedTextKit(
                         animatedTexts: [
                           TyperAnimatedText(
@@ -268,8 +275,10 @@ class _ChatPageState extends State<ChatPage> {
                   setState(() {
                     _messages.insert(0, message);
                   });
-                  _chatService.saveMessageToFirestore(widget.conversationId, message);
-                  getChatResponse(message); // This will trigger an update in the stream
+                  _chatService.saveMessageToFirestore(
+                      widget.conversationId, message);
+                  getChatResponse(
+                      message); // This will trigger an update in the stream
                 },
                 messages: messages,
               );
@@ -281,14 +290,16 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _startNewConversation() async {
-    final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id;
-    // make the initial message and add it 
+    final newConversationId =
+        FirebaseFirestore.instance.collection('conversations').doc().id;
+    // make the initial message and add it
     final initialMessage = ChatMessage(
-      text: 'Hello, how can I help you today?',
+      text: 'Hello. Please tell me what you would like to predict.',
       createdAt: DateTime.now(),
       user: _geminiUser,
     );
-    await _chatService.saveMessageToFirestore(newConversationId, initialMessage);
+    await _chatService.saveMessageToFirestore(
+        newConversationId, initialMessage);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

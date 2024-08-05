@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  # Add this import
 import os
 import google.generativeai as genai
-from csvToString import convert_csv_to_string, get_smaller_sample
+from csvToString import convert_csv_to_string, get_all_parameters, get_smaller_sample
 import logging
+from getTargetVariable import get_target_variable
+from trainer import everything
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -26,19 +28,11 @@ generation_config = {
 
 def generate_response(user_input):
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-1.0-pro",
-            generation_config=generation_config,
-        )
+        file = "coffee.csv"
 
-        prompt = f"User: {user_input}\nAI:"
-        response = model.generate_content([prompt])
+        everything(user_input, file)
 
-        # Log the response for debugging
-        logging.info(f"Full response: {response}")
 
-        ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
-        return ai_response
     except Exception as e:
         logging.error("An error occurred: {e}")
         return "An error occurred: {e}"
@@ -52,6 +46,9 @@ def chat_route():
     
     response = generate_response(user_input)
     return jsonify({"response": response})
+
+
+    
 
 
 app.run(host='0.0.0.0', port=5001, debug=True)

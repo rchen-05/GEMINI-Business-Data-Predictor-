@@ -18,15 +18,19 @@ class ChatService {
       return ChatMessage(
         text: data['text'],
         createdAt: (data['createdAt'] as Timestamp).toDate(),
-        user: ChatUser(id: data['senderId']), // Adjust based on your ChatUser structure
+        user: ChatUser(
+            id: data['senderId']), // Adjust based on your ChatUser structure
       );
     }).toList();
   }
-  Future<void> saveMessageToFirestore(String conversationId, ChatMessage message) async {
+
+  Future<void> saveMessageToFirestore(
+      String conversationId, ChatMessage message) async {
     try {
       final firestore = FirebaseFirestore.instance;
-      final conversationRef = firestore.collection('conversations').doc(conversationId);
-      
+      final conversationRef =
+          firestore.collection('conversations').doc(conversationId);
+
       // Ensure the parent document exists
       await conversationRef.set({}, SetOptions(merge: true));
 
@@ -51,19 +55,23 @@ class ChatService {
         .orderBy('createdAt', descending: true) // Removed extra space
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            // Provide default values in case of missing fields
-            final text = data['text'] ?? '';
-            final senderId = data['senderId'] ?? 'unknown';
-            final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-            
-            return ChatMessage(
-              text: text,
-              user: ChatUser(id: senderId, firstName: 'Name', lastName: ''), // Adjust as needed
-              createdAt: createdAt,
-            );
-          }).toList();
-        });
-}
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        // Provide default values in case of missing fields
+        final text = data['text'] ?? '';
+        final senderId = data['senderId'] ?? 'unknown';
+        final createdAt =
+            (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+        return ChatMessage(
+          text: text,
+          user: ChatUser(
+              id: senderId,
+              firstName: 'sigma snug',
+              lastName: ''), // Adjust as needed
+          createdAt: createdAt,
+        );
+      }).toList();
+    });
+  }
 }
