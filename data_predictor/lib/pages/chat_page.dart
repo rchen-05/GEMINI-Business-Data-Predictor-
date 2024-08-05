@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:file_picker/file_picker.dart';
@@ -20,16 +19,16 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final ChatService _chatService = ChatService();
-  final List<ChatMessage> _messages = <ChatMessage>[];
-  final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby');
-  final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man');
-  final List<ChatUser> _typingUsers = <ChatUser>[];
+  final List<ChatMessage> _messages = <ChatMessage>[]; // List to store chat messages
+  final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby'); // Current user details
+  final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man'); // AI user details
+  final List<ChatUser> _typingUsers = <ChatUser>[]; // List of users currently typing
 
   @override
   void initState() {
     super.initState();
     print('Initializing chat');
-    _initializeChat();
+    _initializeChat(); // Initialize chat when the widget is first built
   }
 
   Future<void> _initializeChat() async {
@@ -75,7 +74,7 @@ class _ChatPageState extends State<ChatPage> {
             user: _geminiUser,
           );
           setState(() {
-            _messages.insert(0, aiMessage);
+            _messages.insert(0, aiMessage); // Insert AI response to the message list
           });
           _chatService.saveMessageToFirestore(widget.conversationId, aiMessage);
         } else {
@@ -85,7 +84,7 @@ class _ChatPageState extends State<ChatPage> {
             user: _geminiUser,
           );
           setState(() {
-            _messages.insert(0, errorMessage);
+            _messages.insert(0, errorMessage); // Insert error message
           });
         }
       } else {
@@ -95,7 +94,7 @@ class _ChatPageState extends State<ChatPage> {
           user: _geminiUser,
         );
         setState(() {
-          _messages.insert(0, errorMessage);
+          _messages.insert(0, errorMessage); // Insert error message
         });
       }
     } catch (e) {
@@ -105,15 +104,52 @@ class _ChatPageState extends State<ChatPage> {
         user: _geminiUser,
       );
       setState(() {
-        _messages.insert(0, errorMessage);
+        _messages.insert(0, errorMessage); // Insert error message
       });
     }
     setState(() {
-      _typingUsers.remove(_geminiUser);
+      _typingUsers.remove(_geminiUser); // Remove AI from typing users
     });
   }
+  void _navigateToConversation(String conversationId) { // Navigate to a specific conversation
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => ChatPage(conversationId: conversationId)),
+    );
+  }
+  Future<List<Map<String, dynamic>>> _fetchConversationHistory() async {
+    final querySnapshot = await FirebaseFirestore.instance.collection('conversations').get();
+    final conversations = querySnapshot.docs;
 
-  Future<void> pickFile() async {
+    // Create a list to store conversations with their last messages
+    List<Map<String, dynamic>> conversationHistories = [];
+
+    for (var conversation in conversations) {
+      // Fetch the last message of the conversation
+      final messagesSnapshot = await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(conversation.id)
+          .collection('messages')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      // Get the last message text if available
+      final lastMessage = messagesSnapshot.docs.isNotEmpty
+          ? messagesSnapshot.docs.first.data()['text']
+          : 'No messages yet';
+
+      // Add the conversation ID and last message to the list
+      conversationHistories.add({
+        'id': conversation.id,
+        'lastMessage': lastMessage,
+      });
+    }
+
+    return conversationHistories;
+  }
+
+  Future<void> pickFile() async { // File picker function
     FilePickerResult? result = await FilePicker.platform.pickFiles();
 
     if (result != null && result.files.isNotEmpty) {
@@ -122,7 +158,7 @@ class _ChatPageState extends State<ChatPage> {
 
       if (fileBytes != null) {
         try {
-          await FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes);
+          await FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes); // Upload file to Firebase Storage
         } catch (e) {
           print('Error uploading file: $e');
         }
@@ -132,14 +168,14 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget sendButton() {
     return FloatingActionButton.small(
-      onPressed: pickFile,
+      onPressed: pickFile, // Trigger file picker
       child: const Icon(Icons.attach_file),
     );
   }
 
   List<Widget> inputOptions() {
     return [
-      sendButton()
+      sendButton() // Add send button as an input option
     ];
   }
 
@@ -176,25 +212,40 @@ class _ChatPageState extends State<ChatPage> {
                     IconButton(
                       icon: const Icon(Icons.chat),
                       color: Colors.white,
-                      onPressed: _startNewConversation,
+                      onPressed: _startNewConversation, // Start a new conversation
                       tooltip: 'Start New Chat',
                     ),
                   ],
                 ),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('Chat History'),
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.graphic_eq),
-              title: const Text(''),
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _fetchConversationHistory(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return ListTile(
+                    title: Text('Error: ${snapshot.error}'),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const ListTile(
+                    title: Text('No conversation history'),
+                  );
+                } else {
+                  final conversationHistories = snapshot.data!;
+                  return Column(
+                    children: conversationHistories.map((conversation) {
+                      return ListTile(
+                        title: Text(conversation['id']),
+                        subtitle: Text(conversation['lastMessage']),
+                        onTap: () {
+                          _navigateToConversation(conversation['id']);
+                        },
+                      );
+                    }).toList(),
+                  );
+                }
               },
             ),
           ],
@@ -202,12 +253,12 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Center(
         child: StreamBuilder<List<ChatMessage>>(
-          stream: _chatService.getMessages(widget.conversationId),
+          stream: _chatService.getMessages(widget.conversationId), // Stream messages from Firestore
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: CircularProgressIndicator()); // Show loading indicator
             } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              return Center(child: Text('Error: ${snapshot.error}')); // Show error message
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -216,7 +267,6 @@ class _ChatPageState extends State<ChatPage> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      // Optionally, you can trigger a default message here
                       _sendInitialMessage();
                       _startNewConversation();
                     },
@@ -266,10 +316,10 @@ class _ChatPageState extends State<ChatPage> {
                 ),
                 onSend: (ChatMessage message) {
                   setState(() {
-                    _messages.insert(0, message);
+                    _messages.insert(0, message); // Add new message to the list
                   });
-                  _chatService.saveMessageToFirestore(widget.conversationId, message);
-                  getChatResponse(message); // This will trigger an update in the stream
+                  _chatService.saveMessageToFirestore(widget.conversationId, message); // Save message to Firestore
+                  getChatResponse(message); // Get AI response for the message
                 },
                 messages: messages,
               );
@@ -281,19 +331,19 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _startNewConversation() async {
-    final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id;
-    // make the initial message and add it 
+    final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id; // Generate new conversation ID
+    // Create and save initial message for the new conversation
     final initialMessage = ChatMessage(
       text: 'Hello, how can I help you today?',
       createdAt: DateTime.now(),
       user: _geminiUser,
     );
-    await _chatService.saveMessageToFirestore(newConversationId, initialMessage);
+    await _chatService.saveMessageToFirestore(newConversationId, initialMessage); // Save initial message to Firestore
+
+    // Navigate to the new conversation
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => ChatPage(conversationId: newConversationId),
-      ),
+      MaterialPageRoute(builder: (context) => ChatPage(conversationId: newConversationId)),
     );
   }
 }

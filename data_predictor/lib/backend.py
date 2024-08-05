@@ -22,17 +22,20 @@ generation_config = {
     "max_output_tokens": 2048,
     "response_mime_type": "text/plain",
 }
+model = genai.GenerativeModel(
+            model_name="gemini-1.0-pro",
+            generation_config=generation_config,
+)
 
+chat =model.start_chat(history=[])
+
+
+conversation_history = []
 
 def generate_response(user_input):
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-1.0-pro",
-            generation_config=generation_config,
-        )
-
         prompt = f"User: {user_input}\nAI:"
-        response = model.generate_content([prompt])
+        response = chat.send_message(prompt)
 
         # Log the response for debugging
         logging.info(f"Full response: {response}")

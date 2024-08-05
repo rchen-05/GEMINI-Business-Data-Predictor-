@@ -42,6 +42,10 @@ class ChatService {
       print('Error saving message: $e');
     }
   }
+  Future<List<QueryDocumentSnapshot>> _fetchConversations() async {
+    final querySnapshot = await FirebaseFirestore.instance.collection('conversations').get();
+    return querySnapshot.docs;
+  }
 
   Stream<List<ChatMessage>> getMessages(String conversationId) {
     return FirebaseFirestore.instance
