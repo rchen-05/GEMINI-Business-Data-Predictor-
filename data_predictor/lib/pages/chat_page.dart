@@ -1,17 +1,20 @@
 import 'dart:convert';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
+import 'package:data_predictor/services/auth/auth_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:data_predictor/services/chat_utilities.dart';
+import 'package:provider/provider.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationId;
+  final String userId; // Add userId parameter
 
-  const ChatPage({super.key, required this.conversationId});
+  const ChatPage({super.key, required this.conversationId, required this.userId});
   
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -19,11 +22,11 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final ChatService _chatService = ChatService();
-  final List<ChatMessage> _messages = <ChatMessage>[]; // List to store chat messages
-  final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby'); // Current user details
-  final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man'); // AI user details
-  final List<ChatUser> _typingUsers = <ChatUser>[]; // List of users currently typing
-  String? latestConversationId; // Store the latest conversation ID
+  final List<ChatMessage> _messages = <ChatMessage>[];
+  final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby');
+  final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man');
+  final List<ChatUser> _typingUsers = <ChatUser>[];
+  String? latestConversationId;
 
   @override
   void initState() {
@@ -34,16 +37,14 @@ class _ChatPageState extends State<ChatPage> {
       });
     });
     print('Initializing chat');
-    _initializeChat(); // Initialize chat when the widget is first built
+    _initializeChat();
   }
 
   Future<void> _initializeChat() async {
-    // Fetch initial messages from Firestore
-    final messages = await _chatService.getMessagesOnce(widget.conversationId);
-    print('Number of messages: ${messages.length}'); // Log the number of messages
+    final messages = await _chatService.getMessagesOnce(widget.userId, widget.conversationId);
+    print('Number of messages: ${messages.length}');
 
     if (messages.isEmpty) {
-      // Send the initial message only if there are no messages
       await _sendInitialMessage();
     }
   }
@@ -55,13 +56,12 @@ class _ChatPageState extends State<ChatPage> {
       user: _geminiUser,
     );
 
-    // Save the initial message to Firestore
-    await _chatService.saveMessageToFirestore(widget.conversationId, initialMessage);
+    await _chatService.saveMessageToFirestore(widget.userId, widget.conversationId, initialMessage);
   }
 
   Future<void> getChatResponse(ChatMessage message) async {
     final userMessage = message.text;
-    const url = 'http://127.0.0.1:5001/chat'; // Flask server URL
+    const url = 'http://127.0.0.1:5001/chat';
 
     try {
       final response = await http.post(
@@ -80,9 +80,9 @@ class _ChatPageState extends State<ChatPage> {
             user: _geminiUser,
           );
           setState(() {
-            _messages.insert(0, aiMessage); // Insert AI response to the message list
+            _messages.insert(0, aiMessage);
           });
-          _chatService.saveMessageToFirestore(widget.conversationId, aiMessage);
+          _chatService.saveMessageToFirestore(widget.userId, widget.conversationId, aiMessage);
         } else {
           final errorMessage = ChatMessage(
             text: 'Error: Unexpected response format',
@@ -90,7 +90,7 @@ class _ChatPageState extends State<ChatPage> {
             user: _geminiUser,
           );
           setState(() {
-            _messages.insert(0, errorMessage); // Insert error message
+            _messages.insert(0, errorMessage);
           });
         }
       } else {
@@ -100,7 +100,7 @@ class _ChatPageState extends State<ChatPage> {
           user: _geminiUser,
         );
         setState(() {
-          _messages.insert(0, errorMessage); // Insert error message
+          _messages.insert(0, errorMessage);
         });
       }
     } catch (e) {
@@ -110,29 +110,31 @@ class _ChatPageState extends State<ChatPage> {
         user: _geminiUser,
       );
       setState(() {
-        _messages.insert(0, errorMessage); // Insert error message
+        _messages.insert(0, errorMessage);
       });
     }
     setState(() {
-      _typingUsers.remove(_geminiUser); // Remove AI from typing users
+      _typingUsers.remove(_geminiUser);
     });
   }
-  void _navigateToConversation(String conversationId) { // Navigate to a specific conversation
+
+  void _navigateToConversation(String conversationId) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => ChatPage(conversationId: conversationId)),
+      MaterialPageRoute(builder: (context) => ChatPage(conversationId: conversationId, userId: widget.userId)),
     );
   }
+
   Future<List<Map<String, dynamic>>> _fetchConversationHistory() async {
-    final querySnapshot = await FirebaseFirestore.instance.collection('conversations').get();
+    final querySnapshot = await FirebaseFirestore.instance.collection('users').doc(widget.userId).collection('conversations').get();
     final conversations = querySnapshot.docs;
 
-    // Create a list to store conversations with their last messages
     List<Map<String, dynamic>> conversationHistories = [];
 
     for (var conversation in conversations) {
-      // Fetch the last message of the conversation
       final messagesSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
           .collection('conversations')
           .doc(conversation.id)
           .collection('messages')
@@ -140,22 +142,20 @@ class _ChatPageState extends State<ChatPage> {
           .limit(1)
           .get();
 
-      // Get the last message text if available
       final lastMessage = messagesSnapshot.docs.isNotEmpty
           ? messagesSnapshot.docs.first.data()['text']
           : 'No messages yet';
 
-      // Add the conversation ID and last message to the list
       conversationHistories.add({
         'id': conversation.id,
-        'lastMessage': _truncateMessage(lastMessage, 30), // Truncate the message to 30 characters
+        'lastMessage': _truncateMessage(lastMessage, 30),
       });
     }
 
     return conversationHistories;
   }
 
-  Future<void> pickFile() async { // File picker function
+  Future<void> pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
 
     if (result != null && result.files.isNotEmpty) {
@@ -164,7 +164,7 @@ class _ChatPageState extends State<ChatPage> {
 
       if (fileBytes != null) {
         try {
-          await FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes); // Upload file to Firebase Storage
+          await FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes);
         } catch (e) {
           print('Error uploading file: $e');
         }
@@ -174,25 +174,28 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget sendButton() {
     return FloatingActionButton.small(
-      onPressed: pickFile, // Trigger file picker
+      onPressed: pickFile,
       child: const Icon(Icons.attach_file),
     );
   }
 
   List<Widget> inputOptions() {
     return [
-      sendButton() // Add send button as an input option
+      sendButton()
     ];
   }
-  // Helper function to truncate messages
+
   String _truncateMessage(String message, int limit) {
     if (message.length > limit) {
       return '${message.substring(0, limit)}...';
     }
     return message;
   }
+
   Future<String?> _fetchLatestConversationId() async {
     final querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
         .collection('conversations')
         .orderBy('createdAt', descending: true)
         .limit(1)
@@ -204,6 +207,10 @@ class _ChatPageState extends State<ChatPage> {
     return null;
   }
 
+  void signOut() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    authService.signOut();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +221,13 @@ class _ChatPageState extends State<ChatPage> {
           'Chat',
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            onPressed: signOut,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -238,7 +252,7 @@ class _ChatPageState extends State<ChatPage> {
                     IconButton(
                       icon: const Icon(Icons.chat),
                       color: Colors.white,
-                      onPressed: _startNewConversation, // Start a new conversation
+                      onPressed: _startNewConversation,
                       tooltip: 'Start New Chat',
                     ),
                   ],
@@ -279,12 +293,12 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Center(
         child: StreamBuilder<List<ChatMessage>>(
-          stream: _chatService.getMessages(widget.conversationId), // Stream messages from Firestore
+          stream: _chatService.getMessages(widget.userId, widget.conversationId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator()); // Show loading indicator
+              return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}')); // Show error message
+              return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -315,7 +329,7 @@ class _ChatPageState extends State<ChatPage> {
                   containerColor: const Color.fromARGB(255, 184, 60, 22),
                   textColor: Colors.white,
                   messageTextBuilder: (currentMessage, previousMessage, nextMessage) {
-                    if (currentMessage.user.id == _geminiUser.id && nextMessage == null && latestConversationId ==  widget.conversationId) {
+                    if (currentMessage.user.id == _geminiUser.id && nextMessage == null && latestConversationId == widget.conversationId) {
                       return AnimatedTextKit(
                         animatedTexts: [
                           TyperAnimatedText(
@@ -342,10 +356,10 @@ class _ChatPageState extends State<ChatPage> {
                 ),
                 onSend: (ChatMessage message) {
                   setState(() {
-                    _messages.insert(0, message); // Add new message to the list
+                    _messages.insert(0, message);
                   });
-                  _chatService.saveMessageToFirestore(widget.conversationId, message); // Save message to Firestore
-                  getChatResponse(message); // Get AI response for the message
+                  _chatService.saveMessageToFirestore(widget.userId, widget.conversationId, message);
+                  getChatResponse(message);
                 },
                 messages: messages,
               );
@@ -357,19 +371,18 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _startNewConversation() async {
-    final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id; // Generate new conversation ID
-    // Create and save initial message for the new conversation
+    final newConversationId = FirebaseFirestore.instance.collection('users').doc(widget.userId).collection('conversations').doc().id;
+
     final initialMessage = ChatMessage(
       text: 'Hello, how can I help you today?',
       createdAt: DateTime.now(),
       user: _geminiUser,
     );
-    await _chatService.saveMessageToFirestore(newConversationId, initialMessage); // Save initial message to Firestore
+    await _chatService.saveMessageToFirestore(widget.userId, newConversationId, initialMessage);
 
-    // Navigate to the new conversation
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => ChatPage(conversationId: newConversationId)),
+      MaterialPageRoute(builder: (context) => ChatPage(conversationId: newConversationId, userId: widget.userId)),
     );
   }
 }
