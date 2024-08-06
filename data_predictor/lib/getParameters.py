@@ -19,12 +19,14 @@ generation_config = {
 }
 
 
+# Get all parameters from the input file
 def get_all_parameters(input_file):  # get a smaller sample from the database
     lines = convert_csv_to_string(input_file).split("\\n")
     parameters = lines[:1]
     return parameters
 
 
+# Get just the relevant ones from the all parameters
 def get_all_relevant_parameters(input_file, target_variable):
     print("Getting X values")
     model = genai.GenerativeModel(
@@ -59,6 +61,7 @@ def get_all_relevant_parameters(input_file, target_variable):
     return all_relevant_parameters
 
 
+# The parameters that the user has access to
 def get_user_parameters(user_input, all_relevant_parameters):
     print("Getting user parameters")
     model = genai.GenerativeModel(

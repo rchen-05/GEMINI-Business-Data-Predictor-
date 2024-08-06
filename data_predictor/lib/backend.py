@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Add this import
+from flask_cors import CORS # Add this import
 import google.generativeai as genai
-from csvToString import convert_csv_to_string, get_smaller_sample
+from csvToString import convert_csv_to_string
 import logging
 import trainer
 from getTargetVariable import get_target_variable
-from getParameters import get_all_parameters, get_all_relevant_parameters, get_user_parameters
+from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
+from getValues import get_values
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -33,18 +34,22 @@ model = genai.GenerativeModel(
 chat = model.start_chat(history=[])
 conversation_history = []
 
+# Global variables
 trained_model = None
 preprocessor = None
 poly = None
 parameters = None
 target_variable = None
+all_parameters = None
+relevant_parameters = None
 
 
 def train_and_save_model(input_text, input_file):
-    global trained_model, preprocessor, poly, parameters, target_variable
+    global trained_model, preprocessor, poly, parameters, target_variable, all_parameters, relevant_parameters
 
-    target_variable = get_target_variable(input_text, str(get_all_parameters(convert_csv_to_string(input_file))))
-    parameters = get_all_relevant_parameters(input_file, target_variable).split(',')
+    target_variable = get_target_variable(input_text, all_parameters)
+    relevant_parameters = get_all_relevant_parameters(input_file, target_variable)
+    parameters = get_user_parameters(input_text, relevant_parameters).split(',')
 
     trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
 
@@ -63,7 +68,13 @@ def train_model():
 
     try:
         train_and_save_model(input_test, input_file)
-        return jsonify({"message": "Model trained successfully", "parameters": parameters, "target_variable": target_variable})
+        return jsonify({
+            "message": "Model trained successfully",
+            "parameters": parameters,
+            "target_variable": target_variable,
+            "all_parameters": all_parameters,
+            "relevant_parameters": relevant_parameters
+        })
     except Exception as e:
         logging.error(f"A training error occurred: {e}")
         return jsonify({"error": f"A training error occurred - Failed to train model: {e}"}), 400
@@ -73,7 +84,12 @@ def train_model():
 def get_model_parameters():
     if parameters is None:
         return jsonify({"error": "Model not trained yet"}), 400
-    return jsonify({"parameters": parameters, "target_variable": target_variable})
+    return jsonify({
+        "parameters": parameters,
+        "target_variable": target_variable,
+        "all_parameters": all_parameters,
+        "relevant_parameters": relevant_parameters
+    })
 
 
 @app.route('/chat', methods=['POST'])
@@ -93,14 +109,54 @@ def predict():
         return jsonify({"error": "Model not trained yet"}), 400
 
     data = request.get_json()
-    user_input = {param: data.get(param) for param in parameters}
+    user_input = data.get('user_input')
+
+    if not user_input:
+        return jsonify({"error": "No user input provided"}), 400
 
     try:
-        prediction = trainer.predict_sales(user_input, trained_model, parameters, preprocessor, poly)
+        values = get_values(user_input, ','.join(parameters))
+        user_data = dict(zip(parameters, values))
+        prediction = trainer.predict_sales(user_data, trained_model, parameters, preprocessor, poly)
         return jsonify({target_variable: prediction})
     except Exception as e:
         logging.error(f"A prediction error occurred: {str(e)}")
         return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
+
+
+@app.route('/get_all_parameters', methods=['POST'])
+def get_all_params():
+    data = request.get_json()
+    input_file = data.get('input_file')
+    if not input_file:
+        return jsonify({"error": "No input file provided"}), 400
+
+    all_params = get_all_parameters(input_file)
+    return jsonify({"all_parameters": all_params})
+
+
+@app.route('/get_relevant_parameters', methods=['POST'])
+def get_relevant_params():
+    data = request.get_json()
+    input_file = data.get('input_file')
+    target_var = data.get('target_variable')
+    if not input_file or not target_var:
+        return jsonify({"error": "Missing input file or target variable"}), 400
+
+    relevant_params = get_all_relevant_parameters(input_file, target_var)
+    return jsonify({"relevant_parameters": relevant_params})
+
+
+@app.route('/get_user_parameters', methods=['POST'])
+def get_user_params():
+    data = request.get_json()
+    user_input = data.get('user_input')
+    relevant_params = data.get('relevant_parameters')
+    if not user_input or not relevant_params:
+        return jsonify({"error": "Missing user input or relevant parameters"}), 400
+
+    user_params = get_user_parameters(user_input, relevant_params)
+    return jsonify({"user_parameters": user_params})
 
 
 def generate_response(user_input):
@@ -118,5 +174,33 @@ def generate_response(user_input):
         return "An error occurred: {e}"
 
 
+def initialize_app():
+    global all_parameters, relevant_parameters
+    # If you need to do any initialization, put it here
+    # For example:
+    # all_parameters = get_all_parameters('your_input_file.csv')
+    # relevant_parameters = get_all_relevant_parameters('your_input_file.csv', 'your_target_variable')
+    print("Initializing application...")
+    # Add any other initialization code here
+
+
 if __name__ == '__main__':
+    initialize_app()
     app.run(host='0.0.0.0', port=5001, debug=True)
+
+
+#
+# @app.route('/predict', methods=['POST'])
+# def predict():
+#     if trained_model is None:
+#         return jsonify({"error": "Model not trained yet"}), 400
+#
+#     data = request.get_json()
+#     user_input = {param: data.get(param) for param in parameters}
+#
+#     try:
+#         prediction = trainer.predict_sales(user_input, trained_model, parameters, preprocessor, poly)
+#         return jsonify({target_variable: prediction})
+#     except Exception as e:
+#         logging.error(f"A prediction error occurred: {str(e)}")
+#         return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
