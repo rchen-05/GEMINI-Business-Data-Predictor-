@@ -23,6 +23,7 @@ generation_config = {
     "response_mime_type": "text/plain",
 }
 
+
 def generate_response(user_input):
     try:
         model = genai.GenerativeModel(
@@ -42,6 +43,7 @@ def generate_response(user_input):
         logging.error(f"An error occurred: {e}")
         return f"An error occurred: {e}"
 
+
 @app.route('/chat', methods=['POST'])
 def chat_route():
     data = request.get_json()
@@ -51,7 +53,6 @@ def chat_route():
     
     response = generate_response(user_input)
     return jsonify({"response": response})
-
 
 
 def get_regressor(input_csv):
@@ -102,8 +103,9 @@ def get_regressor(input_csv):
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         return f"An error occurred: {e}", 500
-@app.route('/get_regressor', methods=['POST'])
 
+
+@app.route('/get_regressor', methods=['POST'])
 def get_regressor_route():
     data = request.get_json()
     csv_content = data.get('csv_content')
@@ -112,6 +114,7 @@ def get_regressor_route():
     
     model = get_regressor(csv_content)
     return jsonify({"model": model})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

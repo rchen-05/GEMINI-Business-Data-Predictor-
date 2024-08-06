@@ -4,9 +4,8 @@ import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample
 import logging
 import trainer
-from getParameters import get_parameters
 from getTargetVariable import get_target_variable
-from csvToString import convert_csv_to_string, get_all_parameters
+from getParameters import get_all_parameters, get_all_relevant_parameters, get_user_parameters
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -45,7 +44,7 @@ def train_and_save_model(input_text, input_file):
     global trained_model, preprocessor, poly, parameters, target_variable
 
     target_variable = get_target_variable(input_text, str(get_all_parameters(convert_csv_to_string(input_file))))
-    parameters = get_parameters(input_file, target_variable).split(',')
+    parameters = get_all_relevant_parameters(input_file, target_variable).split(',')
 
     trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
 
