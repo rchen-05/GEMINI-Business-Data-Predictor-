@@ -41,8 +41,9 @@ def select_target_and_features(input_text, df, input_file):
     global target_variable, parameters
     all_parameters = str(get_all_parameters(input_file)) #this gets all the parameters from the csv file
     target_variable = get_target_variable(input_text, all_parameters) #this gets the target variable from the input text
-    relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable) #this gets the parameters that are relevant to the prediction
+    relevant_parameters = get_all_relevant_parameters(input_file, target_variable) #this gets the parameters that are relevant to the prediction
     parameters = get_user_parameters(input_text, relevant_parameters).split(',') #this gets the parameters that the user has access to
+    print('helo ryanL' + str(parameters))
     X = df[parameters]
     y = df[target_variable]
     return X, y, parameters, target_variable
@@ -194,10 +195,5 @@ def train(input_text, input_file):
     mae, mse, r2 = evaluate_model(model, X_test, y_test)
     cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
 
-train("I want to predict the global prices", "synthetic_vgsales_50.csv")
-
-print(parameters)
-user_data = get_values(input("input: "),parameters)
-predicted_sales = predict(user_data, model, parameters, preprocessor, poly)
-print("Predicted target:", predicted_sales)
+train("I want to predict the global prices. i have access to the rank, name, platform,year, genre, publisherna sales and eu sales", "synthetic_vgsales_50.csv")
 print(summarize_training_process())
