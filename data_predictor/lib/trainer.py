@@ -143,7 +143,7 @@ def predict_sales(data, model, parameters, preprocessor, poly=None):
     prediction = model.predict(df_encoded)
     return prediction[0]
 
-def main(input_text, input_file):
+def train_model(input_text, input_file):
     df = load_data(input_file)
     X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
     categorical_columns = X.select_dtypes(include=['object']).columns
@@ -156,8 +156,7 @@ def main(input_text, input_file):
 
     best_split, best_degree = find_best_split_and_degree(X_encoded, y, model, suggested_model)
     print("Best split ratio:", best_split)
-    if best_degree is not None:
-        print("Best degree for Polynomial Regression:", best_degree)
+    print("Best polynomial degree:", best_degree)
 
     X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=best_split, random_state=42)
     poly = None
@@ -167,9 +166,18 @@ def main(input_text, input_file):
         X_test = poly.transform(X_test)
 
     model.fit(X_train, y_train)
+
     model_filename = 'trained_model.pkl'
     joblib.dump(model, model_filename)
     print("Model saved as:", model_filename)
+
+    preprocessor_filename = 'preprocessor.pkl'
+    joblib.dump(preprocessor, preprocessor_filename)
+    print("Preprocessor saved as:", preprocessor_filename)
+
+    poly_filename = 'poly_features.pkl'
+    joblib.dump(poly, poly_filename)
+    print("Polynomial features saved as:", poly_filename)
 
     evaluate_model(model, X_test, y_test)
     cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
@@ -179,5 +187,16 @@ def main(input_text, input_file):
     predicted_sales = predict_sales(user_data, model, parameters, preprocessor, poly)
     print("Predicted target:", predicted_sales)
 
+    return parameters
+
+def load_model():
+    model = joblib.load('trained_model.pkl')
+    preprocessor = joblib.load('preprocessor.pkl')
+    poly = joblib.load('poly_features.pkl')
+    return model, preprocessor, poly
+
+
 if __name__ == "__main__":
-    main("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
+    # main("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
+    parameters = train_model("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
+    print("Model Trained Successfully!. Parameters are: ", parameters)
