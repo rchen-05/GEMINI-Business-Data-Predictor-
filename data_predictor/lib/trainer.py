@@ -13,10 +13,15 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 import joblib
 import sys
-from csvToString import convert_csv_to_string, get_all_parameters
+from csvToString import convert_csv_to_string
 from getTargetVariable import get_target_variable 
 from getRegressor import get_regressor
-from getParameters import get_parameters
+from getParameters import get_user_parameters, get_all_parameters, get_all_relevant_parameters
+from getValues import get_values
+
+# Declare global variables
+target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores = None, None, None, None, None, None, None, None
+model, preprocessor, poly = None, None, None
 
 def load_data(input_file):
     try:
@@ -33,13 +38,17 @@ def load_data(input_file):
         sys.exit(1)
 
 def select_target_and_features(input_text, df, input_file):
-    target_variable = get_target_variable(input_text, str(get_all_parameters(convert_csv_to_string(input_file))))
-    parameters = get_parameters(input_file, target_variable).split(',')
+    global target_variable, parameters
+    all_parameters = str(get_all_parameters(input_file)) #this gets all the parameters from the csv file
+    target_variable = get_target_variable(input_text, all_parameters) #this gets the target variable from the input text
+    relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable) #this gets the parameters that are relevant to the prediction
+    parameters = get_user_parameters(input_text, relevant_parameters).split(',') #this gets the parameters that the user has access to
     X = df[parameters]
     y = df[target_variable]
     return X, y, parameters, target_variable
 
 def preprocess_data(X, categorical_columns):
+    global preprocessor
     try:
         numeric_columns = X.select_dtypes(include=['int64', 'float64']).columns
         numeric_transformer = Pipeline(steps=[
@@ -90,6 +99,7 @@ def initialize_model(suggested_model):
         raise ValueError("Unsupported model type: " + suggested_model)
 
 def find_best_split_and_degree(X, y, model, suggested_model):
+    global best_split, best_degree
     best_score = float('-inf')
     best_split = None
     best_degree = None
@@ -117,16 +127,15 @@ def find_best_split_and_degree(X, y, model, suggested_model):
     return best_split, best_degree
 
 def evaluate_model(model, X_test, y_test):
+    global mae, mse, r2
     predictions = model.predict(X_test)
     mae = mean_absolute_error(y_test, predictions)
     mse = mean_squared_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
-    print("Mean Absolute Error:", mae)
-    print("Mean Squared Error:", mse)
-    print("R-squared:", r2)
-    return predictions
+    return mae, mse, r2
 
 def cross_validate_model(model, X, y, best_degree=None):
+    global cv_scores
     if best_degree is not None:
         poly = PolynomialFeatures(degree=best_degree)
         X_poly = poly.fit_transform(X)
@@ -135,7 +144,7 @@ def cross_validate_model(model, X, y, best_degree=None):
         cv_scores = cross_val_score(model, X, y, cv=5)
     return cv_scores
 
-def predict_sales(data, model, parameters, preprocessor, poly=None):
+def predict(data, model, parameters, preprocessor, poly=None):
     df = pd.DataFrame([data], columns=parameters)
     df_encoded = preprocessor.transform(df)
     if poly is not None:
@@ -143,7 +152,22 @@ def predict_sales(data, model, parameters, preprocessor, poly=None):
     prediction = model.predict(df_encoded)
     return prediction[0]
 
-def main(input_text, input_file):
+def summarize_training_process():
+    summary = (
+        f"Training Summary:\n"
+        f"Target Variable: {target_variable}\n"
+        f"Parameters Used: {', '.join(parameters)}\n"
+        f"Best Split Ratio: {best_split}\n"
+        f"Best Degree for Polynomial Regression: {best_degree if best_degree is not None else 'N/A'}\n"
+        f"Mean Absolute Error: {mae}\n"
+        f"Mean Squared Error: {mse}\n"
+        f"R-squared: {r2}\n"
+        f"Cross Validation Scores: {cv_scores}\n"
+    )
+    return summary
+
+def train(input_text, input_file):
+    global model, preprocessor, poly
     df = load_data(input_file)
     X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
     categorical_columns = X.select_dtypes(include=['object']).columns
@@ -151,13 +175,9 @@ def main(input_text, input_file):
     X_encoded = pd.DataFrame(X_encoded, columns=feature_names)
 
     suggested_model = get_regressor(input_file)
-    print("Suggested model:", suggested_model)
     model = initialize_model(suggested_model)
 
     best_split, best_degree = find_best_split_and_degree(X_encoded, y, model, suggested_model)
-    print("Best split ratio:", best_split)
-    if best_degree is not None:
-        print("Best degree for Polynomial Regression:", best_degree)
 
     X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=best_split, random_state=42)
     poly = None
@@ -171,13 +191,13 @@ def main(input_text, input_file):
     joblib.dump(model, model_filename)
     print("Model saved as:", model_filename)
 
-    evaluate_model(model, X_test, y_test)
+    mae, mse, r2 = evaluate_model(model, X_test, y_test)
     cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
-    print("Cross Validation Score:", cv_scores)
 
-    user_data = {param: input(f"Enter value for {param}: ") for param in parameters}
-    predicted_sales = predict_sales(user_data, model, parameters, preprocessor, poly)
-    print("Predicted target:", predicted_sales)
+train("I want to predict the global prices", "synthetic_vgsales_50.csv")
 
-if __name__ == "__main__":
-    main("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
+print(parameters)
+user_data = get_values(input("input: "),parameters)
+predicted_sales = predict(user_data, model, parameters, preprocessor, poly)
+print("Predicted target:", predicted_sales)
+print(summarize_training_process())

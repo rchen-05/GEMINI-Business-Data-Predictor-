@@ -18,8 +18,3 @@ def get_smaller_sample(csv_string):  # get a smaller sample from the database
     smallerSample = "\\n".join(smallerSample)
     return smallerSample
 
-
-def get_all_parameters(csv_string):  # get a smaller sample from the database
-    lines = csv_string.split("\\n")
-    smallerSample = lines[:1]
-    return smallerSample

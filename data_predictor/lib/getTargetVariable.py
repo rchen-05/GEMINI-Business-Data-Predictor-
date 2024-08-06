@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  # Add this import
 import os
 import google.generativeai as genai
-from csvToString import convert_csv_to_string, get_smaller_sample, get_all_parameters
+from csvToString import convert_csv_to_string, get_smaller_sample
+from getParameters import get_all_parameters
 
 # Check environment variable
 # api_key = "AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI"
@@ -43,6 +44,5 @@ def get_target_variable(inputText, availableParameters):
 
     response = model.generate_content([prompt])
     targetVariable = str(response.parts[0])[7:-2]
-    print("Target Variable: " + targetVariable)
     return targetVariable
 
