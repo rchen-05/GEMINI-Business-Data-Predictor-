@@ -32,10 +32,10 @@ def generate_response(user_input):
 
         everything(user_input, file)
 
-
     except Exception as e:
         logging.error("An error occurred: {e}")
         return "An error occurred: {e}"
+
 
 @app.route('/chat', methods=['POST'])
 def chat_route():
@@ -46,9 +46,6 @@ def chat_route():
     
     response = generate_response(user_input)
     return jsonify({"response": response})
-
-
-    
 
 
 app.run(host='0.0.0.0', port=5001, debug=True)

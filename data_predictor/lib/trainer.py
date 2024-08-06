@@ -18,6 +18,7 @@ from getTargetVariable import get_target_variable
 from getRegressor import get_regressor
 from getParameters import get_parameters
 
+
 def load_data(input_file):
     try:
         df = pd.read_csv(input_file)
@@ -32,12 +33,14 @@ def load_data(input_file):
         print("Error: The file could not be parsed.")
         sys.exit(1)
 
+
 def select_target_and_features(input_text, df, input_file):
     target_variable = get_target_variable(input_text, str(get_all_parameters(convert_csv_to_string(input_file))))
     parameters = get_parameters(input_file, target_variable).split(',')
     X = df[parameters]
     y = df[target_variable]
     return X, y, parameters, target_variable
+
 
 def preprocess_data(X, categorical_columns):
     try:
@@ -70,6 +73,7 @@ def preprocess_data(X, categorical_columns):
         print("Error during preprocessing:", e)
         sys.exit(1)
 
+
 def initialize_model(suggested_model):
     model_mapping = {
         "Linear": LinearRegression(),
@@ -88,6 +92,7 @@ def initialize_model(suggested_model):
         return LinearRegression()
     else:
         raise ValueError("Unsupported model type: " + suggested_model)
+
 
 def find_best_split_and_degree(X, y, model, suggested_model):
     best_score = float('-inf')
@@ -116,6 +121,7 @@ def find_best_split_and_degree(X, y, model, suggested_model):
 
     return best_split, best_degree
 
+
 def evaluate_model(model, X_test, y_test):
     predictions = model.predict(X_test)
     mae = mean_absolute_error(y_test, predictions)
@@ -126,6 +132,7 @@ def evaluate_model(model, X_test, y_test):
     print("R-squared:", r2)
     return predictions
 
+
 def cross_validate_model(model, X, y, best_degree=None):
     if best_degree is not None:
         poly = PolynomialFeatures(degree=best_degree)
@@ -135,6 +142,7 @@ def cross_validate_model(model, X, y, best_degree=None):
         cv_scores = cross_val_score(model, X, y, cv=5)
     return cv_scores
 
+
 def predict_sales(data, model, parameters, preprocessor, poly=None):
     df = pd.DataFrame([data], columns=parameters)
     df_encoded = preprocessor.transform(df)
@@ -142,6 +150,7 @@ def predict_sales(data, model, parameters, preprocessor, poly=None):
         df_encoded = poly.transform(df_encoded)
     prediction = model.predict(df_encoded)
     return prediction[0]
+
 
 def main(input_text, input_file):
     df = load_data(input_file)
@@ -178,6 +187,7 @@ def main(input_text, input_file):
     user_data = {param: input(f"Enter value for {param}: ") for param in parameters}
     predicted_sales = predict_sales(user_data, model, parameters, preprocessor, poly)
     print("Predicted target:", predicted_sales)
+
 
 if __name__ == "__main__":
     main("i wanna know the average amount of coffee consumed a year", 'coffee.csv')

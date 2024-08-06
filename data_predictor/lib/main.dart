@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:js_interop_unsafe';
+import 'dart:io' show Platform;
 import 'package:data_predictor/pages/chat_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -9,6 +9,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 Future<List<String>> getAllDocumentIds(String collectionPath) async {
   const batchSize = 100; // Adjust batch size if needed
   final documentIds = <String>[];
@@ -23,7 +25,7 @@ Future<List<String>> getAllDocumentIds(String collectionPath) async {
     }
 
     final snapshot = await query.get();
-    
+
     if (snapshot.docs.isEmpty) {
       hasMore = false;
     } else {
@@ -96,12 +98,12 @@ Future<void> main() async {
       authDomain: 'data-predictor-32a58.firebaseapp.com',
       storageBucket: 'data-predictor-32a58.appspot.com',
       measurementId: 'G-XPXXV293SC',
-    ) 
+    )
   );
   print('Firebase initialized');
   runApp(MaterialApp(
     home: MyApp(),
-  )); 
+  ));
 }
 
 
@@ -131,7 +133,7 @@ class SplashScreen extends StatelessWidget {
     return newConversationId;
   }
 
-  
+
 
   @override
   Widget build(BuildContext context) {
@@ -155,4 +157,3 @@ class SplashScreen extends StatelessWidget {
     );
   }
 }
-

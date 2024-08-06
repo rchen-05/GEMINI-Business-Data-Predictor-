@@ -18,6 +18,7 @@ generation_config = {
     "response_mime_type": "text/plain",
 }
 
+
 def get_parameters(input_csv, target_variable):
     print("Getting X values")
     model = genai.GenerativeModel(
@@ -52,11 +53,6 @@ def get_parameters(input_csv, target_variable):
     parameters = str(response.parts[0])[7:-2]
     print("Chosen parameters:" + parameters)
     return parameters
-
-
-
-
-
 
 
 # prompt = f"""
