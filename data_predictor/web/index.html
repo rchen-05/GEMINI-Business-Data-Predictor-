@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script defer src="main.dart.js"></script>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="data_predictor">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>data_predictor</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js"></script>
+  <script type="module">
+    var firebaseConfig = {
+      apiKey: 'AIzaSyCzBt-9HzTi5eVDKJ728Hha6Em1ebs4fEw',
+      appId: '1:408279633368:web:812409e43b1e0a1c54f6ad',
+      messagingSenderId: '408279633368',
+      projectId: 'data-predictor-32a58',
+      authDomain: 'data-predictor-32a58.firebaseapp.com',
+      storageBucket: 'data-predictor-32a58.appspot.com',
+      measurementId: 'G-XPXXV293SC',
+    };
+  
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig)
+  </script>
+  <script src="main.dart.js" type="application/javascript"></script>
+</body>
+</html>
