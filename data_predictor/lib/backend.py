@@ -175,7 +175,6 @@ def generate_response(user_input):
 
 
 def initialize_app():
-    global all_parameters, relevant_parameters
     # If you need to do any initialization, put it here
     # For example:
     # all_parameters = get_all_parameters('your_input_file.csv')
