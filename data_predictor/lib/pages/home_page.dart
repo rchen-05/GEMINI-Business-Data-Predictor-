@@ -1,23 +1,27 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:data_predictor/pages/chat_page.dart';
+import 'package:data_predictor/pages/chat_page2.dart';
 import 'package:flutter/material.dart';
 
-Future<List<String>> getAllDocumentIds(String collectionPath) async {
+Future<List<String>> getAllDocumentIds(String userId, String collectionPath) async {
   const batchSize = 100; // Adjust batch size if needed
   final documentIds = <String>[];
   bool hasMore = true;
   DocumentSnapshot? lastDoc;
 
   while (hasMore) {
-    Query query = FirebaseFirestore.instance.collection(collectionPath).limit(batchSize);
+    Query query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection(collectionPath)
+        .limit(batchSize);
 
     if (lastDoc != null) {
       query = query.startAfterDocument(lastDoc);
     }
 
     final snapshot = await query.get();
-    
+
     if (snapshot.docs.isEmpty) {
       hasMore = false;
     } else {
@@ -30,15 +34,19 @@ Future<List<String>> getAllDocumentIds(String collectionPath) async {
 
   return documentIds;
 }
-Future<void> clearDatabase(List<String> conversationIDs) async {
-  for (var id in conversationIDs){
-    await deleteAllMessages(id);
-    await deleteConversation(id);
+
+Future<void> clearDatabase(String userId, List<String> conversationIDs) async {
+  for (var id in conversationIDs) {
+    await deleteAllMessages(userId, id);
+    await deleteConversation(userId, id);
   }
 }
-Future<void> deleteConversation(String conversationId) async {
+
+Future<void> deleteConversation(String userId, String conversationId) async {
   try {
     final conversationRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
         .collection('conversations')
         .doc(conversationId);
 
@@ -49,9 +57,12 @@ Future<void> deleteConversation(String conversationId) async {
     print('Error deleting conversation: $e');
   }
 }
-Future<void> deleteAllMessages(String conversationId) async {
+
+Future<void> deleteAllMessages(String userId, String conversationId) async {
   try {
     final messagesCollectionRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
         .collection('conversations')
         .doc(conversationId)
         .collection('messages');
@@ -79,20 +90,20 @@ Future<void> deleteAllMessages(String conversationId) async {
   }
 }
 
-
-
-
-
-
 class HomePage extends StatelessWidget {
+  final String userId; // Add userId
+
+  HomePage({required this.userId});
+
   Future<String> _createNewConversation() async {
-    final conversationIds = await getAllDocumentIds('conversations');
-    await clearDatabase(conversationIds);
-    final newConversationId = FirebaseFirestore.instance.collection('conversations').doc().id;
+    final newConversationId = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('conversations')
+        .doc()
+        .id;
     return newConversationId;
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +120,8 @@ class HomePage extends StatelessWidget {
           );
         } else {
           final conversationId = snapshot.data!;
-          // Navigate to ChatPage with the new conversation ID
-          return ChatPage(conversationId: conversationId);
+          // Navigate to ChatPage with the new conversation ID and userId
+          return ChatPage2(conversationID: conversationId,);
         }
       },
     );
