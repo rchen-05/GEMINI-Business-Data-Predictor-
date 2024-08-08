@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:data_predictor/components/chat_bubble.dart';
+import 'package:data_predictor/components/chat_controller.dart';
 import 'package:data_predictor/components/my_text_field.dart';
 import 'package:data_predictor/models/message.dart';
 import 'package:data_predictor/services/auth/auth_service.dart';
 import 'package:data_predictor/services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -25,6 +27,18 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
+  late ScrollController _scrollController;
+
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+   @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
 
   Future<List<Map<String, dynamic>>> _fetchConversationHistory() async {
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -148,70 +162,14 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            SizedBox(
-              height: 70,
-              child: DrawerHeader(
-                decoration: const BoxDecoration(
-                  color: Color.fromARGB(255, 184, 60, 22),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'History',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chat),
-                      color: Colors.white,
-                      onPressed: _startNewConversation,
-                      tooltip: 'Start New Chat',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _fetchConversationHistory(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: Center(child: Text('Loading...')));
-                } else if (snapshot.hasError) {
-                  return ListTile(
-                    title: Text('Error: ${snapshot.error}'),
-                  );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const ListTile(
-                    title: Text('No conversation history'),
-                  );
-                } else {
-                  final conversationHistories = snapshot.data!;
-                  return Column(
-                    children: conversationHistories.map((conversation) {
-                      return ListTile(
-                        title: Text(conversation['id']),
-                        subtitle: Text(conversation['lastMessage']),
-                        onTap: () {
-                          _navigateToConversation(conversation['id']);
-                        },
-                      );
-                    }).toList(),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-      ),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.conversationID),
+        title: Text(widget.conversationID,
+            style: const TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         actions: [
           IconButton(
             onPressed: signOut,
@@ -220,36 +178,61 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Messages
-          Expanded(
-            child: _buildMessageList(),
+      body: Center(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
           ),
-          // User input
-          _buildMessageInput(),
-        ],
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            children: [
+              // Messages
+
+              Expanded(
+                child: _buildMessageList(),
+              ),
+              // User input
+
+              _buildMessageInput(),
+
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   // Build message list
   Widget _buildMessageList() {
-    return StreamBuilder(
-      stream: _chatService.getMessages(widget.conversationID),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: Text('Loading...'));
-        }
-        return ListView(
-          children: snapshot.data!.docs
-              .map((document) => _buildMessageItem(document))
-              .toList(),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: StreamBuilder(
+        stream: _chatService.getMessages(widget.conversationID),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: Text('Loading...'));
+          }
+          WidgetsBinding.instance.addPostFrameCallback((_){
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            }
+          });
+
+          return ListView.builder(
+            controller: _scrollController,
+            physics: BouncingScrollPhysics(),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final document = snapshot.data!.docs[index];
+              return _buildMessageItem(document);
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -257,7 +240,6 @@ class _ChatPageState extends State<ChatPage> {
   Widget _buildMessageItem(DocumentSnapshot document) {
     Map<String, dynamic> data = document.data() as Map<String, dynamic>;
 
-    // Align messages to the right if they are from the user and to the left if they are from the bot
     var alignment = (data['sender'] == 'user')
         ? Alignment.centerRight
         : Alignment.centerLeft;
@@ -280,22 +262,32 @@ class _ChatPageState extends State<ChatPage> {
 
   // Build message input
   Widget _buildMessageInput() {
-    return Row(
-      children: [
-        // Text field
-        Expanded(
-          child: MyTextField(
-            controller: _messageController,
-            hintText: 'Enter message',
-            obscureText: false,
-          ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(25),
         ),
-        // Send button
-        IconButton(
-          icon: const Icon(Icons.arrow_upward, size: 40),
-          onPressed: sendMessage,
+        child: Row(
+          children: [
+            // Text field
+            Expanded(
+              child: ChatController(
+                controller: _messageController,
+                hintText: 'Enter message',
+                obscureText: false,
+              ),
+            ),
+            // Send button
+            IconButton(
+              iconSize: 30,
+              icon: const Icon(Icons.arrow_upward, size: 30),
+              onPressed: sendMessage,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

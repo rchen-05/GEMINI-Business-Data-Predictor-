@@ -394,3 +394,64 @@
 //     );
 //   }
 // }
+// import 'package:flutter/material.dart';
+
+// class ChatBubble extends StatelessWidget {
+//   final String message; // Keep as String
+
+//   const ChatBubble({
+//     super.key,
+//     required this.message,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     // Convert the message to RichText with bold formatting
+//     final richText = _convertToRichText(message);
+
+//     return Container(
+//       padding: const EdgeInsets.all(12.0),
+//       decoration: BoxDecoration(
+//         color: const Color.fromARGB(255, 184, 60, 22), // Bubble color
+//         borderRadius: BorderRadius.circular(8.0), // Bubble border radius
+//       ),
+//       child: richText, // Use the RichText widget here
+//     );
+//   }
+
+//   RichText _convertToRichText(String text) {
+//     final List<TextSpan> spans = [];
+//     final RegExp regex = RegExp(r'\*\*(.*?)\*\*');
+//     int lastIndex = 0;
+
+//     for (final match in regex.allMatches(text)) {
+//       // Add the text before the match
+//       if (match.start > lastIndex) {
+//         spans.add(TextSpan(text: text.substring(lastIndex, match.start)));
+//       }
+
+//       // Add the bold text
+//       spans.add(TextSpan(
+//         text: match.group(1),
+//         style: TextStyle(fontWeight: FontWeight.bold),
+//       ));
+
+//       lastIndex = match.end;
+//     }
+
+//     // Add any remaining text after the last match
+//     if (lastIndex < text.length) {
+//       spans.add(TextSpan(text: text.substring(lastIndex)));
+//     }
+
+//     return RichText(
+//       text: TextSpan(
+//         children: spans, 
+//         style: const TextStyle(
+//           color: Colors.black, // Text color
+//           fontSize: 16.0, // Text size
+//         ),
+//       ),
+//     );
+//   }
+// }
