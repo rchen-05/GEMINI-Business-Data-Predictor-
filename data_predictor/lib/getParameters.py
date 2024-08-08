@@ -70,21 +70,41 @@ def get_user_parameters(user_input, all_relevant_parameters):
     )
 
     prompt = f"""
-        "Based on the input text, select the parameters the user has access to from the given list. The parameters that you give should ONLY be from the list of available parameters, so if the user gives a parameter but that parameter is not included in the list, do NOT include it. Your output should only be a string consisting of each parameter separated by a comma, for example \"x,y,z\".",
-        "input: User input: \"I have data for the make, model, type of transmission and the car's condition\"\nAvailable parameters: Make,Model,Year,EngineSize,Transmission,FuelType,Mileage,Color,Condition,NumberOfOwners,AccidentHistory,ServiceHistory,MarketDemand",
-        "output: Make,Model,Transmission,Condition",
-        "input: User input: \"department, job title, level of education, whether theyre married or not, retirement status\nAvailable parameters: \nDepartment,JobTitle,YearsOfExperience,EducationLevel,PerformanceScore,Gender,Age,Region,MaritalStatus",
-        "output: Deparment,JobTitle,EducationLevel,MaritalStatus",
-        "input: User input: \"I have platform, year, genre, type of game, and console\"\nAvailable parameters:\nRank,Name,Platform,Year,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales",
-        "output: Platform,Year,Genre",
-        "input: User input: \"The only thing I don't have access to is the type of coffee consumed. I have everything else though.\"\nAvailable parameters:\nCountry,Year,Coffee Consumption (kg per capita per year),Type of Coffee Consumed,Population (millions)",
-        "output: Country,Year,Coffee Consumption (kg per capita per year),Population (millions)",
-        "input: User input: \{user_input}\nAvailable parameters: {all_relevant_parameters}",
-        "output: ",
-        """
+        Based on the input text, select the parameters the user has access to from the given list. 
+        The parameters that you give should ONLY be from the list of available parameters, so if the user gives a 
+        parameter but that parameter is not included in the list, do NOT include it. 
+        Your output should only be a string consisting of each parameter separated by a comma, for example "x,y,z".
+
+        User input: {user_input}
+        Available parameters: {all_relevant_parameters}
+
+        Output:
+    """
+
+    # prompt = f"""
+    #     "Based on the input text, select the parameters the user has access to from the given list. The parameters that you give should ONLY be from the list of available parameters, so if the user gives a parameter but that parameter is not included in the list, do NOT include it. Your output should only be a string consisting of each parameter separated by a comma, for example \"x,y,z\".",
+    #     "input: User input: \"I have data for the make, model, type of transmission and the car's condition\"\nAvailable parameters: Make,Model,Year,EngineSize,Transmission,FuelType,Mileage,Color,Condition,NumberOfOwners,AccidentHistory,ServiceHistory,MarketDemand",
+    #     "output: Make,Model,Transmission,Condition",
+    #     "input: User input: \"department, job title, level of education, whether theyre married or not, retirement status\nAvailable parameters: \nDepartment,JobTitle,YearsOfExperience,EducationLevel,PerformanceScore,Gender,Age,Region,MaritalStatus",
+    #     "output: Deparment,JobTitle,EducationLevel,MaritalStatus",
+    #     "input: User input: \"I have platform, year, genre, type of game, and console\"\nAvailable parameters:\nRank,Name,Platform,Year,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales",
+    #     "output: Platform,Year,Genre",
+    #     "input: User input: \"The only thing I don't have access to is the type of coffee consumed. I have everything else though.\"\nAvailable parameters:\nCountry,Year,Coffee Consumption (kg per capita per year),Type of Coffee Consumed,Population (millions)",
+    #     "output: Country,Year,Coffee Consumption (kg per capita per year),Population (millions)",
+    #     "input: User input: \{user_input}\nAvailable parameters: {all_relevant_parameters}",
+    #     "output: ",
+    #     """
 
     response = model.generate_content([prompt])
-    user_parameters = str(response.parts[0])[7:-2]
+    response_text = response.text.strip()
+
+    lines = response_text.split("\n")
+    user_parameters = lines[-1].strip()
+
+    # remove quotation marks
+    user_parameters = user_parameters.replace('"', '').replace("'", "")
+
+    # user_parameters = str(response.parts[0])[7:-2]
     return user_parameters
 
 

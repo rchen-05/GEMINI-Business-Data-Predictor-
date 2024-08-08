@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS # Add this import
+from flask_cors import CORS  # Add this import
 import google.generativeai as genai
 from csvToString import convert_csv_to_string
 import logging
@@ -7,6 +7,9 @@ import trainer
 from getTargetVariable import get_target_variable
 from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
 from getValues import get_values
+import gdown
+import os
+import re
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -42,6 +45,24 @@ parameters = None
 target_variable = None
 all_parameters = None
 relevant_parameters = None
+
+
+def download_file_from_drive(url):
+    # Extract file ID from the Google Drive link
+    file_id = re.findall(r'\/file\/d\/(.+?)\/view', url)
+    if not file_id:
+        raise ValueError("Invalid Google Drive URL")
+
+    file_id = file_id[0]
+    output = f'downloaded_file_{file_id}.csv'
+    gdown.download(f'https://drive.google.com/uc?id={file_id}', output, quiet=False)
+    return output
+
+
+def extract_drive_link(user_input):
+    # Simple regex to find a Google Drive link in the user input
+    match = re.search(r'https://drive\.google\.com/file/d/[^\s]+', user_input)
+    return match.group(0) if match else None
 
 
 def train_and_save_model(input_text, input_file):
@@ -159,19 +180,156 @@ def get_user_params():
     return jsonify({"user_parameters": user_params})
 
 
+def handle_train_request(user_input):
+    input_text = user_input
+    input_file = extract_drive_link(user_input)
+
+    if not input_file:
+        return "No Google Drive link found in the input. Please provide a link to the dataset."
+
+    try:
+        input_file = download_file_from_drive(input_file)
+        train_and_save_model(input_text, input_file)
+        return f"Model trained successfully using file {input_file}. Parameters: {parameters}, " \
+               f"Target variable: {target_variable}"
+    except Exception as e:
+        return f"Failed to train model: {str(e)}"
+
+
+def handle_predict_request(user_input):
+    if trained_model is None:
+        return "Model not trained yet. Please train the model first."
+
+    try:
+        values = get_values(user_input, ','.join(parameters))
+        user_data = dict(zip(parameters, values))
+        prediction = trainer.predict_sales(user_data, trained_model, parameters, preprocessor, poly)
+        return f"Prediction for {target_variable}: {prediction}"
+    except Exception as e:
+        return f"Failed to make prediction: {str(e)}"
+
+
+def handle_get_parameters_request(user_input):
+    if parameters is None:
+        return "Model not trained yet. Please train the model first."
+    return f"Parameters: {parameters}, Target variable: {target_variable}, All parameters: {all_parameters}, " \
+           f"Relevant parameters: {relevant_parameters}"
+
+
+def handle_get_all_parameters_request(user_input):
+    input_file = extract_drive_link(user_input)
+
+    if not input_file:
+        return "No Google Drive link found in the input. Please provide a link to the dataset."
+
+    try:
+        input_file = download_file_from_drive(input_file)
+        all_params = get_all_parameters(input_file)
+        return f"All parameters for {input_file}: {all_params}"
+    except Exception as e:
+        return f"Failed to get all parameters: {str(e)}"
+
+
+def handle_get_relevant_parameters_request(user_input):
+    input_file = extract_drive_link(user_input)
+
+    if not input_file:
+        return "No Google Drive link found in the input. Please provide a link to the dataset."
+
+    # Extract target variable from user input (this is a simplification)
+    target_var = user_input.split("target variable")[-1].strip()
+
+    try:
+        input_file = download_file_from_drive(input_file)
+        relevant_params = get_all_relevant_parameters(input_file, target_var)
+        return f"Relevant parameters for {input_file} with target {target_var}: {relevant_params}"
+    except Exception as e:
+        return f"Failed to get relevant parameters: {str(e)}"
+
+
+def handle_get_user_parameters_request(user_input):
+    input_file = extract_drive_link(user_input)
+
+    if not input_file:
+        return "No Google Drive link found in the input. Please provide a link to the dataset."
+
+    relevant_params = get_all_relevant_parameters(input_file, target_variable)
+
+    try:
+        user_params = get_user_parameters(user_input, relevant_params)
+        return f"User parameters: {user_params}"
+    except Exception as e:
+        return f"Failed to get user parameters: {str(e)}"
+
+
+def handle_help_request(user_input):
+    help_prompt = f"""
+    The user has asked for help with using the ML model training and prediction system. Please provide a concise guide on how to:
+    1. Train a model (including how to provide a Google Drive link for the dataset)
+    2. Make predictions using the trained model
+    3. Get information about model parameters
+    4. Get all parameters from a dataset
+    5. Get relevant parameters for a specific target
+    6. Get user-accessible parameters
+
+    User input: {user_input}
+
+    Help Guide:
+    """
+
+    help_response = model.generate_content(help_prompt)
+    return help_response.text.strip()
+
+
 def generate_response(user_input):
     try:
-        prompt = f"User: {user_input}\nAI:"
-        response = chat.send_message(prompt)
+        # Gemini is trying to understand the user's intent using the following prompt
+        intent_prompt = f"""
+        Analyze the following user input and determine the user's intent. Respond with one of these categories:
+        - TRAIN: If the user wants to train a model or use a dataset
+        - PREDICT: If the user wants to make a prediction
+        - GET_PARAMETERS: If the user wants to get model parameters
+        - GET_ALL_PARAMETERS: If the user wants to get all parameters from a dataset
+        - GET_RELEVANT_PARAMETERS: If the user wants to get relevant parameters for a specific target
+        - GET_USER_PARAMETERS: If the user wants to know what parameters they have access to
+        - HELP: If the user is asking for help or instructions on how to use the system
+        - OTHER: If the intent doesn't match any of the above categories
 
-        # Log the response for debugging
-        logging.info(f"Full response: {response}")
+        User input: {user_input}
 
-        ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
-        return ai_response
+        Intent:
+        """
+
+        intent_response = model.generate_content(intent_prompt)
+        intent = intent_response.text.strip().upper()
+
+        print(f"Detected intent: {intent}")  # For debugging
+
+        if intent == "TRAIN":
+            return handle_train_request(user_input)
+        elif intent == "PREDICT":
+            return handle_predict_request(user_input)
+        elif intent == "GET_PARAMETERS":
+            return handle_get_parameters_request(user_input)
+        elif intent == "GET_ALL_PARAMETERS":
+            return handle_get_all_parameters_request(user_input)
+        elif intent == "GET_RELEVANT_PARAMETERS":
+            return handle_get_relevant_parameters_request(user_input)
+        elif intent == "GET_USER_PARAMETERS":
+            return handle_get_user_parameters_request(user_input)
+        elif intent == "HELP":
+            return handle_help_request(user_input)
+        else:
+            # For any other intent, use the default chat response
+            prompt = f"User: {user_input}\nAI:"
+            response = chat.send_message(prompt)
+            ai_response = response.parts[0].text if response.parts and len(
+                response.parts) > 0 else "No response from AI"
+            return str(ai_response)
+
     except Exception as e:
-        logging.error("An error occurred: {e}")
-        return "An error occurred: {e}"
+        logging.error(f"An error occurred: {e}")
+        return f"An error occurred: {str(e)}"
 
 
 def initialize_app():
@@ -188,6 +346,19 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
 
 
+# def generate_response(user_input):
+#     try:
+#         prompt = f"User: {user_input}\nAI:"
+#         response = chat.send_message(prompt)
+#
+#         # Log the response for debugging
+#         logging.info(f"Full response: {response}")
+#
+#         ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
+#         return ai_response
+#     except Exception as e:
+#         logging.error("An error occurred: {e}")
+#         return "An error occurred: {e}"
 #
 # @app.route('/predict', methods=['POST'])
 # def predict():
