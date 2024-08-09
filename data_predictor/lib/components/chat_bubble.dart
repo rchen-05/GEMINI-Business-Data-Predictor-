@@ -32,10 +32,10 @@ class _ChatBubbleState extends State<ChatBubble> {
     final richText = _convertToRichText(widget.message);
 
     return Container(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 184, 60, 22),
-        borderRadius: BorderRadius.circular(8.0),
+        color: const Color.fromARGB(255, 30, 31, 32),
+        borderRadius: BorderRadius.circular(20.0),
       ),
       child: GestureDetector(
         onTap: () {
@@ -44,7 +44,10 @@ class _ChatBubbleState extends State<ChatBubble> {
         child: SelectableText.rich(
           TextSpan(
             children: richText,
-            style: DefaultTextStyle.of(context).style.copyWith(fontSize: 16.0),
+            style: DefaultTextStyle.of(context).style.copyWith(
+                fontSize: 16.0,
+                color: Colors.white,
+                fontFamily: 'SFCompactText'),
           ),
           focusNode: _focusNode,
           onSelectionChanged: (selection, cause) {
@@ -68,16 +71,18 @@ class _ChatBubbleState extends State<ChatBubble> {
       if (match.start > lastIndex) {
         spans.add(TextSpan(
           text: text.substring(lastIndex, match.start),
-          style: TextStyle(fontSize: 16.0),
+          style: const TextStyle(
+              fontSize: 16.0, color: Colors.white, fontFamily: 'SFCompactText'),
         ));
       }
 
       // Add the bold text
       spans.add(TextSpan(
         text: match.group(1),
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 16.0,
+          fontFamily: 'SFCompactText'
         ),
       ));
 
@@ -88,7 +93,11 @@ class _ChatBubbleState extends State<ChatBubble> {
     if (lastIndex < text.length) {
       spans.add(TextSpan(
         text: text.substring(lastIndex),
-        style: TextStyle(fontSize: 16.0),
+        style: const TextStyle(
+            fontSize: 16.0,
+            color: Colors.white, 
+            fontFamily: 'SFCompactText'
+        ),
       ));
     }
 

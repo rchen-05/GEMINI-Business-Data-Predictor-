@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:data_predictor/components/ai_chat_bubble.dart';
 import 'package:data_predictor/components/chat_bubble.dart';
 import 'package:data_predictor/components/chat_controller.dart';
-import 'package:data_predictor/components/my_text_field.dart';
-import 'package:data_predictor/models/message.dart';
 import 'package:data_predictor/services/auth/auth_service.dart';
 import 'package:data_predictor/services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,53 +33,10 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-   @override
+  @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchConversationHistory() async {
-    final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-    final currentUserID = _firebaseAuth.currentUser?.uid;
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserID)
-        .collection('conversations')
-        .get();
-    final conversations = querySnapshot.docs;
-
-    List<Map<String, dynamic>> conversationHistories = [];
-
-    for (var conversation in conversations) {
-      final messagesSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserID)
-          .collection('conversations')
-          .doc(conversation.id)
-          .collection('messages')
-          .orderBy('timestamp', descending: false)
-          .limit(1)
-          .get();
-
-      final lastMessage = messagesSnapshot.docs.isNotEmpty
-          ? messagesSnapshot.docs.first.data()['text']
-          : 'No messages yet';
-
-      conversationHistories.add({
-        'id': conversation.id,
-        'lastMessage': _truncateMessage(lastMessage, 30),
-      });
-    }
-
-    return conversationHistories;
-  }
-
-  String _truncateMessage(String message, int limit) {
-    if (message.length > limit) {
-      return '${message.substring(0, limit)}...';
-    }
-    return message;
   }
 
   Future<void> getChatResponse(String userMessage) async {
@@ -109,37 +65,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _startNewConversation() async {
-    final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-    final currentUserID = _firebaseAuth.currentUser?.uid;
-    final newConversationId = FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserID)
-        .collection('conversations')
-        .doc()
-        .id;
-
-    final initialMessage = 'Hello! How can I help you today?';
-    await _chatService.saveMessageToFirestore(
-        newConversationId, 'bot', initialMessage);
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-          builder: (context) => ChatPage(conversationID: newConversationId)),
-    );
-  }
-
-  void _navigateToConversation(String conversationId) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-          builder: (context) => ChatPage(
-                conversationID: conversationId,
-              )),
-    );
-  }
-
   void signOut() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     authService.signOut();
@@ -162,11 +87,12 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromARGB(255, 19, 19, 20),
       appBar: AppBar(
         title: Text(widget.conversationID,
-            style: const TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+            style: const TextStyle(
+                color: Colors.white, fontFamily: 'SFCompactText')),
+        backgroundColor: const Color.fromARGB(255, 19, 19, 20),
         foregroundColor: Colors.black,
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
@@ -181,7 +107,7 @@ class _ChatPageState extends State<ChatPage> {
       body: Center(
         child: Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: Color.fromARGB(255, 19, 19, 20),
           ),
           constraints: const BoxConstraints(maxWidth: 900),
           child: Column(
@@ -206,25 +132,31 @@ class _ChatPageState extends State<ChatPage> {
   // Build message list
   Widget _buildMessageList() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 0),
       child: StreamBuilder(
         stream: _chatService.getMessages(widget.conversationID),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
+            return Text('Error: ${snapshot.error}',
+                style: const TextStyle(
+                    fontFamily: 'SFCompactText', color: Colors.white));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: Text('Loading...'));
+            return const Center(
+                child: Text('Loading...',
+                    style: TextStyle(
+                        fontFamily: 'SFCompactText', color: Colors.white)));
           }
-          WidgetsBinding.instance.addPostFrameCallback((_){
+          WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scrollController.hasClients) {
-              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+              _scrollController
+                  .jumpTo(_scrollController.position.maxScrollExtent);
             }
           });
 
           return ListView.builder(
             controller: _scrollController,
-            physics: BouncingScrollPhysics(),
+            physics: const  BouncingScrollPhysics(),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final document = snapshot.data!.docs[index];
@@ -249,13 +181,16 @@ class _ChatPageState extends State<ChatPage> {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
-          crossAxisAlignment: (data['sender'] == 'user')
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            ChatBubble(message: data['text']),
-          ],
-        ),
+            crossAxisAlignment: (data['sender'] == 'user')
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: (data['sender'] == 'user')
+                ? [
+                    ChatBubble(message: data['text']),
+                  ]
+                : [
+                    AiChatBubble(message: data['text']),
+                  ]),
       ),
     );
   }
@@ -266,7 +201,7 @@ class _ChatPageState extends State<ChatPage> {
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: const Color.fromARGB(255, 30, 31, 32),
           borderRadius: BorderRadius.circular(25),
         ),
         child: Row(
@@ -280,10 +215,24 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
             // Send button
-            IconButton(
-              iconSize: 30,
-              icon: const Icon(Icons.arrow_upward, size: 30),
-              onPressed: sendMessage,
+            Padding(
+              padding: const EdgeInsets.only(right: 7),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade700,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  hoverColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  iconSize: 15,
+                  icon: const Icon(Icons.arrow_upward,
+                      size: 15, color: Color.fromARGB(255, 30, 31, 32)),
+                  onPressed: sendMessage,
+                ),
+              ),
             ),
           ],
         ),
