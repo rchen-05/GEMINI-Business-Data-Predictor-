@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:data_predictor/main.dart';
-import 'package:data_predictor/pages/broken_page.dart';
+import 'package:data_predictor/pages/chat_page.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

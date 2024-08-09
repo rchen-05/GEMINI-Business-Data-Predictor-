@@ -55,4 +55,3 @@ def get_values(user_input, parameters):
     values = [try_convert(value.strip()) for value in values]
 
     return values
-

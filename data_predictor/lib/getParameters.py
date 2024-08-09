@@ -27,7 +27,8 @@ def get_all_parameters(input_file):  # get a smaller sample from the database
 
 
 # Get just the relevant ones from the all parameters
-def get_all_relevant_parameters(all_parameters, target_variable):
+def get_all_relevant_parameters(input_file, target_variable):
+    print("Getting X values")
     model = genai.GenerativeModel(
         model_name="gemini-1.0-pro",
         generation_config=generation_config,
@@ -35,7 +36,7 @@ def get_all_relevant_parameters(all_parameters, target_variable):
 
     # csv_string = convert_csv_to_string(input_csv)
     # smaller_sample = get_smaller_sample(csv_string)
-    available_parameters = str(all_parameters)
+    available_parameters = str(get_all_parameters((input_file)))
 
     prompt = f"""
         "There will be a target variable input, representing what the user wants to predict. There will also be a list of parameters you could choose from to be included in the feature matrix, which will be fed into the machine learning model. \n\nFor example, the itarget variable could be: \"gross income\".\n\n\nAnd the available parameters could be: Invoice ID,Branch,City,Customer type,Gender,Product line,Unit price,Quantity,Tax 5%,Total,Date,Time,Payment,cogs,gross margin percentage,gross income,Rating\n\nYou should respond with the relevant features to predict the target variable gross income, like \"Branch,City,Customer type,Gender,Product line,Unit price,Quantity,Tax 5%,Total,Date,Time,Payment,cogs,gross margin percentage,Rating\"\n\n\nDon't include irrelevant parameters. For example, if I'm trying to predict employee salary, employee ID should not matter as there will never be any correlation between employee salary and employee ID.\n\n\nAs you can see, the parameter Invoice ID is not included, as it is not relevant to predicting the target variable gross income. The parameter gross income itself is also not included in the output, as that is the target variable itself.\n\nI don't want any spaces at the front or back of the string. Make sure to include all the necessary features for the model to make accurate predictions.",
@@ -106,3 +107,6 @@ def get_user_parameters(user_input, all_relevant_parameters):
     # user_parameters = str(response.parts[0])[7:-2]
     return user_parameters
 
+
+print(get_user_parameters("i have rank, name platform and year",
+                          get_all_relevant_parameters('vgsales.csv', 'global_sales')))

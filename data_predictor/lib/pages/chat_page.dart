@@ -1,242 +1,396 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:data_predictor/components/ai_chat_bubble.dart';
-import 'package:data_predictor/components/chat_bubble.dart';
-import 'package:data_predictor/components/chat_controller.dart';
-import 'package:data_predictor/services/auth/auth_service.dart';
-import 'package:data_predictor/services/chat_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
-import 'package:provider/provider.dart';
 
-class ChatPage extends StatefulWidget {
-  final String conversationID;
-  const ChatPage({
-    super.key,
-    required this.conversationID,
-  });
+// import 'dart:convert';
+// import 'package:animated_text_kit/animated_text_kit.dart';
+// import 'package:dash_chat_2/dash_chat_2.dart';
+// import 'package:data_predictor/services/auth/auth_service.dart';
+// import 'package:file_picker/file_picker.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:firebase_storage/firebase_storage.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:data_predictor/services/chat_service.dart';
+// import 'package:provider/provider.dart';
 
-  @override
-  State<ChatPage> createState() => _ChatPageState();
-}
+// class ChatPage extends StatefulWidget {
+//   final String conversationId;
 
-class _ChatPageState extends State<ChatPage> {
-  final TextEditingController _messageController = TextEditingController();
-  final ChatService _chatService = ChatService();
-  late ScrollController _scrollController;
+//   const ChatPage({super.key, required this.conversationId,});
+  
+//   @override
+//   State<ChatPage> createState() => _ChatPageState();
+// }
 
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+// class _ChatPageState extends State<ChatPage> {
+//   final ChatService _chatService = ChatService();
+//   final List<ChatMessage> _messages = <ChatMessage>[];
+//   final ChatUser _currentUser = ChatUser(id: '1', firstName: 'Daniel', lastName: 'Bobby');
+//   final ChatUser _geminiUser = ChatUser(id: '2', firstName: 'Ai', lastName: 'man');
+//   final List<ChatUser> _typingUsers = <ChatUser>[];
+//   String? latestConversationId;
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _fetchLatestConversationId().then((id) {
+//       setState(() {
+//         latestConversationId = id;
+//       });
+//     });
+//     print('Initializing chat');
+//     _initializeChat();
+//   }
 
-  Future<void> getChatResponse(String userMessage) async {
-    const url = 'http://127.0.0.1:5001/chat';
+//   Future<void> _initializeChat() async {
+//     final messages = await _chatService.getMessagesOnce(widget.conversationId);
+//     print('Number of messages: ${messages.length}');
 
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"message": userMessage}),
-      );
+//     if (messages.isEmpty) {
+//       await _sendInitialMessage();
+//     }
+//   }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final aiResponse = data['response'];
-        await _chatService.saveMessageToFirestore(
-          widget.conversationID,
-          'bot',
-          aiResponse,
-        );
-      } else {
-        print('Failed to get response from the server.');
-      }
-    } catch (e) {
-      print('Error: $e');
-    }
-  }
+//   Future<void> _sendInitialMessage() async {
+//     final initialMessage = ChatMessage(
+//       text: 'Hello, how can I help you today?',
+//       createdAt: DateTime.now(),
+//       user: _geminiUser,
+//     );
 
-  void signOut() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    authService.signOut();
-  }
+//     await _chatService.saveMessageToFirestore(widget.conversationId, initialMessage);
+//   }
 
-  void sendMessage() async {
-    // Only send message if the text field is not empty
-    if (_messageController.text.isNotEmpty) {
-      await _chatService.saveMessageToFirestore(
-        widget.conversationID,
-        'user',
-        _messageController.text,
-      );
-      // Clear the text field after sending the message
-      getChatResponse(_messageController.text);
-      _messageController.clear();
-    }
-  }
+//   Future<void> getChatResponse(ChatMessage message) async {
+//     final userMessage = message.text;
+//     const url = 'http://127.0.0.1:5001/chat';
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 19, 19, 20),
-      appBar: AppBar(
-        title: Text(widget.conversationID,
-            style: const TextStyle(
-                color: Colors.white, fontFamily: 'SFCompactText')),
-        backgroundColor: const Color.fromARGB(255, 19, 19, 20),
-        foregroundColor: Colors.black,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        actions: [
-          IconButton(
-            onPressed: signOut,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: Center(
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color.fromARGB(255, 19, 19, 20),
-          ),
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Column(
-            children: [
-              // Messages
+//     try {
+//       final response = await http.post(
+//         Uri.parse(url),
+//         headers: {"Content-Type": "application/json"},
+//         body: jsonEncode({"message": userMessage}),
+//       );
 
-              Expanded(
-                child: _buildMessageList(),
-              ),
-              // User input
+//       if (response.statusCode == 200) {
+//         final data = jsonDecode(response.body);
+//         final aiResponse = data['response'];
+//         if (aiResponse is String) {
+//           final aiMessage = ChatMessage(
+//             text: aiResponse,
+//             createdAt: DateTime.now(),
+//             user: _geminiUser,
+//           );
+//           setState(() {
+//             _messages.insert(0, aiMessage);
+//           });
+//           _chatService.saveMessageToFirestore(widget.conversationId, aiMessage);
+//         } else {
+//           final errorMessage = ChatMessage(
+//             text: 'Error: Unexpected response format',
+//             createdAt: DateTime.now(),
+//             user: _geminiUser,
+//           );
+//           setState(() {
+//             _messages.insert(0, errorMessage);
+//           });
+//         }
+//       } else {
+//         final errorMessage = ChatMessage(
+//           text: 'Error: ${response.reasonPhrase}',
+//           createdAt: DateTime.now(),
+//           user: _geminiUser,
+//         );
+//         setState(() {
+//           _messages.insert(0, errorMessage);
+//         });
+//       }
+//     } catch (e) {
+//       final errorMessage = ChatMessage(
+//         text: 'An error occurred: $e',
+//         createdAt: DateTime.now(),
+//         user: _geminiUser,
+//       );
+//       setState(() {
+//         _messages.insert(0, errorMessage);
+//       });
+//     }
+//     setState(() {
+//       _typingUsers.remove(_geminiUser);
+//     });
+//   }
 
-              _buildMessageInput(),
+//   void _navigateToConversation(String conversationId) {
+//     Navigator.pushReplacement(
+//       context,
+//       MaterialPageRoute(builder: (context) => ChatPage(conversationId: conversationId)),
+//     );
+//   }
 
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+//   Future<List<Map<String, dynamic>>> _fetchConversationHistory() async {
+//     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+//     final currentUserID = _firebaseAuth.currentUser?.uid;
+//     final querySnapshot = await FirebaseFirestore.instance.collection('users').doc(currentUserID).collection('conversations').get();
+//     final conversations = querySnapshot.docs;
 
-  // Build message list
-  Widget _buildMessageList() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: StreamBuilder(
-        stream: _chatService.getMessages(widget.conversationID),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}',
-                style: const TextStyle(
-                    fontFamily: 'SFCompactText', color: Colors.white));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: Text('Loading...',
-                    style: TextStyle(
-                        fontFamily: 'SFCompactText', color: Colors.white)));
-          }
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients) {
-              _scrollController
-                  .jumpTo(_scrollController.position.maxScrollExtent);
-            }
-          });
+//     List<Map<String, dynamic>> conversationHistories = [];
 
-          return ListView.builder(
-            controller: _scrollController,
-            physics: const  BouncingScrollPhysics(),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final document = snapshot.data!.docs[index];
-              return _buildMessageItem(document);
-            },
-          );
-        },
-      ),
-    );
-  }
+//     for (var conversation in conversations) {
+//       final messagesSnapshot = await FirebaseFirestore.instance
+//           .collection('users')
+//           .doc(currentUserID)
+//           .collection('conversations')
+//           .doc(conversation.id)
+//           .collection('messages')
+//           .orderBy('createdAt', descending: true)
+//           .limit(1)
+//           .get();
 
-  // Build message item
-  Widget _buildMessageItem(DocumentSnapshot document) {
-    Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+//       final lastMessage = messagesSnapshot.docs.isNotEmpty
+//           ? messagesSnapshot.docs.first.data()['text']
+//           : 'No messages yet';
 
-    var alignment = (data['sender'] == 'user')
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
+//       conversationHistories.add({
+//         'id': conversation.id,
+//         'lastMessage': _truncateMessage(lastMessage, 30),
+//       });
+//     }
 
-    return Container(
-      alignment: alignment,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-            crossAxisAlignment: (data['sender'] == 'user')
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: (data['sender'] == 'user')
-                ? [
-                    ChatBubble(message: data['text']),
-                  ]
-                : [
-                    AiChatBubble(message: data['text']),
-                  ]),
-      ),
-    );
-  }
+//     return conversationHistories;
+//   }
 
-  // Build message input
-  Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 30, 31, 32),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          children: [
-            // Text field
-            Expanded(
-              child: ChatController(
-                controller: _messageController,
-                hintText: 'Enter message',
-                obscureText: false,
-              ),
-            ),
-            // Send button
-            Padding(
-              padding: const EdgeInsets.only(right: 7),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade700,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  hoverColor: Colors.transparent,
-                  focusColor: Colors.transparent,
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                  iconSize: 15,
-                  icon: const Icon(Icons.arrow_upward,
-                      size: 15, color: Color.fromARGB(255, 30, 31, 32)),
-                  onPressed: sendMessage,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   Future<void> pickFile() async {
+//     FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+//     if (result != null && result.files.isNotEmpty) {
+//       final fileBytes = result.files.first.bytes;
+//       final fileName = result.files.first.name;
+
+//       if (fileBytes != null) {
+//         try {
+//           await FirebaseStorage.instance.ref('uploads/$fileName').putData(fileBytes);
+//         } catch (e) {
+//           print('Error uploading file: $e');
+//         }
+//       }
+//     }
+//   }
+
+//   Widget sendButton() {
+//     return FloatingActionButton.small(
+//       onPressed: pickFile,
+//       child: const Icon(Icons.attach_file),
+//     );
+//   }
+
+//   List<Widget> inputOptions() {
+//     return [
+//       sendButton()
+//     ];
+//   }
+
+//   String _truncateMessage(String message, int limit) {
+//     if (message.length > limit) {
+//       return '${message.substring(0, limit)}...';
+//     }
+//     return message;
+//   }
+
+//   Future<String?> _fetchLatestConversationId() async {
+//     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+//     final currentUserID = _firebaseAuth.currentUser?.uid;
+//     final querySnapshot = await FirebaseFirestore.instance
+//         .collection('users')
+//         .doc(currentUserID)
+//         .collection('conversations')
+//         .orderBy('createdAt', descending: true)
+//         .limit(1)
+//         .get();
+
+//     if (querySnapshot.docs.isNotEmpty) {
+//       return querySnapshot.docs.first.id;
+//     }
+//     return null;
+//   }
+
+//   void signOut() async {
+//     final authService = Provider.of<AuthService>(context, listen: false);
+//     authService.signOut();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         backgroundColor: const Color.fromARGB(255, 184, 60, 22),
+//         title: const Text(
+//           'Chat',
+//           style: TextStyle(color: Colors.white),
+//         ),
+//         actions: [
+//           IconButton(
+//             onPressed: signOut,
+//             icon: const Icon(Icons.logout),
+//             tooltip: 'Logout',
+//           ),
+//         ],
+//       ),
+//       drawer: Drawer(
+//         child: ListView(
+//           padding: EdgeInsets.zero,
+//           children: <Widget>[
+//             SizedBox(
+//               height: 70,
+//               child: DrawerHeader(
+//                 decoration: const BoxDecoration(
+//                   color: Color.fromARGB(255, 184, 60, 22),
+//                 ),
+//                 child: Row(
+//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                   children: [
+//                     const Text(
+//                       'History',
+//                       style: TextStyle(
+//                         color: Colors.white,
+//                         fontSize: 24,
+//                       ),
+//                     ),
+//                     IconButton(
+//                       icon: const Icon(Icons.chat),
+//                       color: Colors.white,
+//                       onPressed: _startNewConversation,
+//                       tooltip: 'Start New Chat',
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//             FutureBuilder<List<Map<String, dynamic>>>(
+//               future: _fetchConversationHistory(),
+//               builder: (context, snapshot) {
+//                 if (snapshot.connectionState == ConnectionState.waiting) {
+//                   return const Center(child: CircularProgressIndicator());
+//                 } else if (snapshot.hasError) {
+//                   return ListTile(
+//                     title: Text('Error: ${snapshot.error}'),
+//                   );
+//                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//                   return const ListTile(
+//                     title: Text('No conversation history'),
+//                   );
+//                 } else {
+//                   final conversationHistories = snapshot.data!;
+//                   return Column(
+//                     children: conversationHistories.map((conversation) {
+//                       return ListTile(
+//                         title: Text(conversation['id']),
+//                         subtitle: Text(conversation['lastMessage']),
+//                         onTap: () {
+//                           _navigateToConversation(conversation['id']);
+//                         },
+//                       );
+//                     }).toList(),
+//                   );
+//                 }
+//               },
+//             ),
+//           ],
+//         ),
+//       ),
+//       body: Center(
+//         child: StreamBuilder<List<ChatMessage>>(
+//           stream: _chatService.getMessages(widget.conversationId),
+//           builder: (context, snapshot) {
+//             if (snapshot.connectionState == ConnectionState.waiting) {
+//               return const Center(child: CircularProgressIndicator());
+//             } else if (snapshot.hasError) {
+//               return Center(child: Text('Error: ${snapshot.error}'));
+//             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//               return Column(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 children: <Widget>[
+//                   const Text('No messages yet.'),
+//                   const SizedBox(height: 20),
+//                   ElevatedButton(
+//                     onPressed: () {
+//                       _sendInitialMessage();
+//                       _startNewConversation();
+//                     },
+//                     child: const Text('Create New Chat'),
+//                   ),
+//                 ],
+//               );
+//             } else {
+//               final messages = snapshot.data!;
+//               return DashChat(
+//                 currentUser: _currentUser,
+//                 typingUsers: _typingUsers,
+//                 inputOptions: InputOptions(
+//                   sendOnEnter: true,
+//                   alwaysShowSend: true,
+//                   trailing: inputOptions(),
+//                 ),
+//                 messageOptions: MessageOptions(
+//                   currentUserContainerColor: Colors.black,
+//                   containerColor: const Color.fromARGB(255, 184, 60, 22),
+//                   textColor: Colors.white,
+//                   messageTextBuilder: (currentMessage, previousMessage, nextMessage) {
+//                     if (currentMessage.user.id == _geminiUser.id && nextMessage == null && latestConversationId == widget.conversationId) {
+//                       return AnimatedTextKit(
+//                         animatedTexts: [
+//                           TyperAnimatedText(
+//                             currentMessage.text,
+//                             speed: const Duration(milliseconds: 9),
+//                             textStyle: const TextStyle(
+//                               fontSize: 16,
+//                               color: Colors.white,
+//                             ),
+//                           ),
+//                         ],
+//                         totalRepeatCount: 1,
+//                       );
+//                     } else {
+//                       return SelectableText(
+//                         currentMessage.text,
+//                         style: const TextStyle(
+//                           fontSize: 16,
+//                           color: Colors.white,
+//                         ),
+//                       );
+//                     }
+//                   },
+//                 ),
+//                 onSend: (ChatMessage message) {
+//                   setState(() {
+//                     _messages.insert(0, message);
+//                   });
+//                   _chatService.saveMessageToFirestore(widget.conversationId, message);
+//                   getChatResponse(message);
+//                 },
+//                 messages: messages,
+//               );
+//             }
+//           },
+//         ),
+//       ),
+//     );
+//   }
+  
+//   void _startNewConversation() async {
+//     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+//     final currentUserID = _firebaseAuth.currentUser?.uid;
+//     final newConversationId = FirebaseFirestore.instance.collection('users').doc(currentUserID).collection('conversations').doc().id;
+
+//     final initialMessage = ChatMessage(
+//       text: 'Hello, how can I help you today?',
+//       createdAt: DateTime.now(),
+//       user: _geminiUser,
+//     );
+//     await _chatService.saveMessageToFirestore(newConversationId, initialMessage);
+
+//     Navigator.pushReplacement(
+//       context,
+//       MaterialPageRoute(builder: (context) => ChatPage(conversationId: newConversationId)),
+//     );
+//   }
+// }

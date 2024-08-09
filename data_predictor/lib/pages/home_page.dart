@@ -1,273 +1,129 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:data_predictor/services/chat_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:data_predictor/pages/chat_page.dart';
+import 'package:data_predictor/pages/chat_page2.dart';
+import 'package:flutter/material.dart';
 
-class NewHomePage extends StatefulWidget {
-  final String userId;
+Future<List<String>> getAllDocumentIds(String userId, String collectionPath) async {
+  const batchSize = 100; // Adjust batch size if needed
+  final documentIds = <String>[];
+  bool hasMore = true;
+  DocumentSnapshot? lastDoc;
 
-  NewHomePage({required this.userId});
+  while (hasMore) {
+    Query query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection(collectionPath)
+        .limit(batchSize);
 
-  @override
-  _NewHomePageState createState() => _NewHomePageState();
+    if (lastDoc != null) {
+      query = query.startAfterDocument(lastDoc);
+    }
+
+    final snapshot = await query.get();
+
+    if (snapshot.docs.isEmpty) {
+      hasMore = false;
+    } else {
+      for (var doc in snapshot.docs) {
+        documentIds.add(doc.id);
+      }
+      lastDoc = snapshot.docs.last;
+    }
+  }
+
+  return documentIds;
 }
 
-class _NewHomePageState extends State<NewHomePage> {
-  final ChatService _chatService = ChatService();
-  int _selectedIndex = 0;
-  late Future<List<Map<String, dynamic>>> _conversationHistoryFuture;
-  late Future<List<String>> _conversationIdsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _conversationHistoryFuture = _fetchConversationHistory();
-    _conversationIdsFuture = getUserConversationIds();
+Future<void> clearDatabase(String userId, List<String> conversationIDs) async {
+  for (var id in conversationIDs) {
+    await deleteAllMessages(userId, id);
+    await deleteConversation(userId, id);
   }
+}
 
-  Future<void> _startNewConversation() async {
-    final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-    final currentUserID = _firebaseAuth.currentUser?.uid;
-    if (currentUserID == null) return;
-
-    final newConversationDocRef = FirebaseFirestore.instance
+Future<void> deleteConversation(String userId, String conversationId) async {
+  try {
+    final conversationRef = FirebaseFirestore.instance
         .collection('users')
-        .doc(currentUserID)
+        .doc(userId)
         .collection('conversations')
-        .doc();
+        .doc(conversationId);
 
-    final newConversationId = newConversationDocRef.id;
-    final initialMessage = 'Hello! How can I help you today?';
-
-    // Save the initial message to Firestore
-    await _chatService.saveMessageToFirestore(
-      newConversationId,
-      'bot',
-      initialMessage,
-    );
-
-    // Refresh the conversation history
-    setState(() {
-      _conversationHistoryFuture = _fetchConversationHistory();
-      _conversationIdsFuture = getUserConversationIds();
-    });
-
-    // Navigate to the new conversation's chat page
-    setState(() {
-      _selectedIndex = 0; // Assuming the new conversation is at the top
-    });
+    // Delete the conversation document
+    await conversationRef.delete();
+    print('Conversation deleted successfully.');
+  } catch (e) {
+    print('Error deleting conversation: $e');
   }
+}
 
-  Future<List<Map<String, dynamic>>> _fetchConversationHistory() async {
-    final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-    final currentUserID = _firebaseAuth.currentUser?.uid;
-    if (currentUserID == null) return [];
-
-    final querySnapshot = await FirebaseFirestore.instance
+Future<void> deleteAllMessages(String userId, String conversationId) async {
+  try {
+    final messagesCollectionRef = FirebaseFirestore.instance
         .collection('users')
-        .doc(currentUserID)
+        .doc(userId)
         .collection('conversations')
-        .get();
+        .doc(conversationId)
+        .collection('messages');
 
-    final conversations = querySnapshot.docs;
+    // Fetch all documents in the Messages subcollection
+    final snapshot = await messagesCollectionRef.get();
 
-    if (conversations.isEmpty) {
-      // No conversations exist, so start a new one
-      await _startNewConversation();
-      // Fetch the conversation history again after creating the new conversation
-      return _fetchConversationHistory();
+    // Check if there are any documents
+    if (snapshot.docs.isEmpty) {
+      print('No messages to delete.');
+      return;
     }
 
-    List<Map<String, dynamic>> conversationHistories = [];
-
-    for (var conversation in conversations) {
-      final messagesSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserID)
-          .collection('conversations')
-          .doc(conversation.id)
-          .collection('messages')
-          .orderBy('timestamp', descending: false)
-          .limit(1)
-          .get();
-
-      final lastMessage = messagesSnapshot.docs.isNotEmpty
-          ? messagesSnapshot.docs.first.data()['text']
-          : 'No messages yet';
-
-      conversationHistories.add({
-        'id': conversation.id,
-        'lastMessage': _truncateMessage(lastMessage, 30),
-      });
+    // Delete each document
+    final batch = FirebaseFirestore.instance.batch();
+    for (var doc in snapshot.docs) {
+      batch.delete(doc.reference);
     }
 
-    return conversationHistories;
+    // Commit the batch
+    await batch.commit();
+    print('All messages deleted successfully.');
+  } catch (e) {
+    print('Error deleting messages: $e');
   }
+}
 
-  Future<List<String>> getUserConversationIds() async {
-    try {
-      final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-      final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+class HomePage extends StatelessWidget {
+  final String userId; // Add userId
 
-      final currentUserID = _firebaseAuth.currentUser?.uid;
-      if (currentUserID == null) {
-        throw Exception("No user logged in");
-      }
+  HomePage({required this.userId});
 
-      // Fetch conversation documents for the current user
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(currentUserID)
-          .collection('conversations')
-          .get();
-
-      // Extract conversation IDs
-      final conversationIds = snapshot.docs.map((doc) => doc.id).toList();
-
-      return conversationIds;
-    } catch (e) {
-      print('Error fetching conversation IDs: $e');
-      return [];
-    }
-  }
-
-  void _onConversationTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  String _truncateMessage(String message, int limit) {
-    if (message.length > limit) {
-      return '${message.substring(0, limit)}...';
-    }
-    return message;
+  Future<String> _createNewConversation() async {
+    final newConversationId = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('conversations')
+        .doc()
+        .id;
+    return newConversationId;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          // Sidebar
-          Container(
-            width: 300,
-            color: const Color.fromARGB(255, 30, 31, 32),
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  height: 70,
-                  child: DrawerHeader(
-                    decoration: const BoxDecoration(
-                      color: Color.fromARGB(255, 30, 31, 32),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'History',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontFamily: 'SFCompactText',
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.chat),
-                          color: Colors.white,
-                          onPressed: _startNewConversation,
-                          tooltip: 'Start New Chat',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: FutureBuilder<List<Map<String, dynamic>>>(
-                    future: _conversationHistoryFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Text('Loading...',
-                              style: TextStyle(
-                                  fontFamily: 'SFCompactText',
-                                  color: Colors.white)),
-                        );
-                      } else if (snapshot.hasError) {
-                        return ListTile(
-                          title: Text('Error: ${snapshot.error}',
-                              style: const TextStyle(
-                                  fontFamily: 'SFCompactText',
-                                  color: Colors.white)),
-                        );
-                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const ListTile(
-                          title: Text(
-                            'No conversation history',
-                            style: TextStyle(
-                                fontFamily: 'SFCompactText',
-                                color: Colors.white),
-                          ),
-                        );
-                      } else {
-                        final conversationHistories = snapshot.data!;
-                        return ListView.builder(
-                          itemCount: conversationHistories.length,
-                          itemBuilder: (context, index) {
-                            final conversation = conversationHistories[index];
-                            return ListTile(
-                              tileColor: _selectedIndex == index
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade900,
-                              hoverColor: Colors.grey.shade600,
-                              title: Text(conversation['lastMessage'],
-                                  style: const TextStyle(
-                                      fontFamily: 'SFCompactText',
-                                      color: Colors.white)),
-                              onTap: () => _onConversationTapped(index),
-                            );
-                          },
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Main content area
-          Expanded(
-            child: FutureBuilder<List<String>>(
-              future: _conversationIdsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: Text('Loading...',
-                          style: TextStyle(fontFamily: 'SFCompactText')));
-                } else if (snapshot.hasError) {
-                  return const Center(
-                      child: Text('Error loading page',
-                          style: TextStyle(fontFamily: 'SFCompactText')));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                      child: Text('No data available',
-                          style: TextStyle(fontFamily: 'SFCompactText')));
-                } else {
-                  List<Widget> pages = snapshot.data!
-                      .map((conversationID) =>
-                          ChatPage(conversationID: conversationID))
-                      .toList();
-                  return IndexedStack(
-                    index: _selectedIndex,
-                    children: pages,
-                  );
-                }
-              },
-            ),
-          ),
-        ],
-      ),
+    return FutureBuilder<String>(
+      future: _createNewConversation(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        } else {
+          final conversationId = snapshot.data!;
+          // Navigate to ChatPage with the new conversation ID and userId
+          return ChatPage2(conversationID: conversationId,);
+        }
+      },
     );
   }
 }

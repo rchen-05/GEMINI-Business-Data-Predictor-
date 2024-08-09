@@ -7,10 +7,9 @@ import trainer
 from getTargetVariable import get_target_variable
 from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
 from getValues import get_values
-from chatFilter import filter_chat
-
-target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, None, None, None, None, None, None
-
+import gdown
+import os
+import re
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -139,7 +138,7 @@ def predict():
     try:
         values = get_values(user_input, ','.join(parameters))
         user_data = dict(zip(parameters, values))
-        prediction = trainer.predict(user_data, trained_model, parameters, preprocessor, poly)
+        prediction = trainer.predict_sales(user_data, trained_model, parameters, preprocessor, poly)
         return jsonify({target_variable: prediction})
     except Exception as e:
         logging.error(f"A prediction error occurred: {str(e)}")
@@ -284,23 +283,50 @@ def handle_help_request(user_input):
 
 def generate_response(user_input):
     try:
-        prompt = f"User: {user_input}\nAI:"
-        option = filter_chat(user_input)
-        if option == '0':
-            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, 'coffee.csv')
-            return trainer.summarize_training_process()
-        elif option == '1':
-            user_values = get_values(user_input, parameters)
-            trainer.predict(user_values, trained_model, parameters, preprocessor, poly)
-            
-        elif option == '2':
-            response = chat.send_message(prompt)
-            # Log the response for debugging
-            logging.info(f"Full response: {response}")
+        # Gemini is trying to understand the user's intent using the following prompt
+        intent_prompt = f"""
+        Analyze the following user input and determine the user's intent. Respond with one of these categories:
+        - TRAIN: If the user wants to train a model or use a dataset
+        - PREDICT: If the user wants to make a prediction
+        - GET_PARAMETERS: If the user wants to get model parameters
+        - GET_ALL_PARAMETERS: If the user wants to get all parameters from a dataset
+        - GET_RELEVANT_PARAMETERS: If the user wants to get relevant parameters for a specific target
+        - GET_USER_PARAMETERS: If the user wants to know what parameters they have access to
+        - HELP: If the user is asking for help or instructions on how to use the system
+        - OTHER: If the intent doesn't match any of the above categories
 
-            ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
-            return ai_response
-        
+        User input: {user_input}
+
+        Intent:
+        """
+
+        intent_response = model.generate_content(intent_prompt)
+        intent = intent_response.text.strip().upper()
+
+        print(f"Detected intent: {intent}")  # For debugging
+
+        if intent == "TRAIN":
+            return handle_train_request(user_input)
+        elif intent == "PREDICT":
+            return handle_predict_request(user_input)
+        elif intent == "GET_PARAMETERS":
+            return handle_get_parameters_request(user_input)
+        elif intent == "GET_ALL_PARAMETERS":
+            return handle_get_all_parameters_request(user_input)
+        elif intent == "GET_RELEVANT_PARAMETERS":
+            return handle_get_relevant_parameters_request(user_input)
+        elif intent == "GET_USER_PARAMETERS":
+            return handle_get_user_parameters_request(user_input)
+        elif intent == "HELP":
+            return handle_help_request(user_input)
+        else:
+            # For any other intent, use the default chat response
+            prompt = f"User: {user_input}\nAI:"
+            response = chat.send_message(prompt)
+            ai_response = response.parts[0].text if response.parts and len(
+                response.parts) > 0 else "No response from AI"
+            return str(ai_response)
+
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         return f"An error occurred: {str(e)}"

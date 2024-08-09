@@ -42,8 +42,7 @@ class MyApp extends StatelessWidget{
     return MaterialApp(
       title: 'Data Predictor',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-        useMaterial3: false
+        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 184, 60, 22)),
       ),
       home: AuthGate(),
     );
