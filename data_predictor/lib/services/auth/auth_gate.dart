@@ -17,7 +17,7 @@ class AuthGate extends StatelessWidget {
             final User? user = snapshot.data;
             if (user != null) {
               final userId = user.uid;
-              return HomePage(userId: userId); // Pass the userId to HomePage
+              return NewHomePage(userId: userId); // Pass the userId to HomePage
             } else {
               return const LoginOrRegister();
             }

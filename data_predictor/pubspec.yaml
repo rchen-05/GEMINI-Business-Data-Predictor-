@@ -84,17 +84,101 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
+  fonts:
+    - family: SFCompactDisplay
+      fonts:
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Bold.otf
+          weight: 700
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Heavy.otf
+          weight: 900
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Light.otf
+          weight: 300
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Medium.otf
+          weight: 500
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Regular.otf
+          weight: 400
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Semibold.otf
+          weight: 600
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Thin.otf
+          weight: 100
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Display-Ultralight.otf
+          weight: 200
+    - family: SFCompactRounded
+      fonts:
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Black.otf
+          weight: 900
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Bold.otf
+          weight: 700
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Heavy.otf
+          weight: 800
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Light.otf
+          weight: 300
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Medium.otf
+          weight: 500
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Regular.otf
+          weight: 400
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Semibold.otf
+          weight: 600
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Thin.otf
+          weight: 100
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Rounded-Ultralight.otf
+          weight: 200
+    - family: SFCompactText
+      fonts:
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Black.otf
+          weight: 900
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-BlackItalic.otf
+          weight: 900
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Bold.otf
+          weight: 700
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-BoldItalic.otf
+          weight: 700
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Heavy.otf
+          weight: 800
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-HeavyItalic.otf
+          weight: 800
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Light.otf
+          weight: 300
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-LightItalic.otf
+          weight: 300
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Medium.otf
+          weight: 500
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-MediumItalic.otf
+          weight: 500
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Regular.otf
+          weight: 400
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-RegularItalic.otf
+          weight: 400
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Semibold.otf
+          weight: 600
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-SemiboldItalic.otf
+          weight: 600
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Thin.otf
+          weight: 100
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-ThinItalic.otf
+          weight: 100
+          style: italic
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-Ultralight.otf
+          weight: 200
+          style: normal
+        - asset: lib/assets/fonts/SFCompact/SF-Compact-Text-UltralightItalic.otf
+          weight: 200
+          style: italic
+  
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
