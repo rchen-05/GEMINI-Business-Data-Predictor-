@@ -7,6 +7,10 @@ import trainer
 from getTargetVariable import get_target_variable
 from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
 from getValues import get_values
+from chatFilter import filter_chat
+
+target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, None, None, None, None, None, None
+
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -117,7 +121,7 @@ def predict():
     try:
         values = get_values(user_input, ','.join(parameters))
         user_data = dict(zip(parameters, values))
-        prediction = trainer.predict_sales(user_data, trained_model, parameters, preprocessor, poly)
+        prediction = trainer.predict(user_data, trained_model, parameters, preprocessor, poly)
         return jsonify({target_variable: prediction})
     except Exception as e:
         logging.error(f"A prediction error occurred: {str(e)}")
@@ -162,13 +166,22 @@ def get_user_params():
 def generate_response(user_input):
     try:
         prompt = f"User: {user_input}\nAI:"
-        response = chat.send_message(prompt)
+        option = filter_chat(user_input)
+        if option == '0':
+            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, 'coffee.csv')
+            return trainer.summarize_training_process()
+        elif option == '1':
+            user_values = get_values(user_input, parameters)
+            trainer.predict(user_values, trained_model, parameters, preprocessor, poly)
+            
+        elif option == '2':
+            response = chat.send_message(prompt)
+            # Log the response for debugging
+            logging.info(f"Full response: {response}")
 
-        # Log the response for debugging
-        logging.info(f"Full response: {response}")
-
-        ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
-        return ai_response
+            ai_response = response.parts[0].text if response.parts and len(response.parts) > 0 else "No response from AI"
+            return ai_response
+        
     except Exception as e:
         logging.error("An error occurred: {e}")
         return "An error occurred: {e}"
