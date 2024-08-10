@@ -11,6 +11,7 @@ from chatFilter import filter_chat
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pickle
+import requests
 import io
 
 target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, \
@@ -59,6 +60,38 @@ target_variable = None
 all_parameters = None
 relevant_parameters = None
 file_uploaded = False
+uploaded_file_path = None
+
+
+@app.route('/upload_and_train', methods=['POST'])
+def upload_and_train():
+    global file_uploaded, uploaded_file_path
+
+    data = request.get_json()
+    file_url = data.get('file_url')
+    file_name = data.get('file_name')
+
+    if not file_url or not file_name:
+        return jsonify({"error": "Missing required parameters"}), 400
+    try:
+        # Download the file from firebase storage
+        response = requests.get(file_url)
+        if response.status_code == 200:
+            # Save the file to the local file system
+            uploaded_file_path = f"temp_{file_name}"
+            with open(uploaded_file_path, 'wb') as f:
+                f.write(response.content)
+
+            file_uploaded = True
+
+            train_and_save_model("Train a model using the uploaded file", uploaded_file_path)
+
+            return jsonify({"message": "File uploaded and model trained successfully"})
+        else:
+            return jsonify({"error": "Failed to download file"}), 400
+    except Exception as e:
+        logging.error(f"An error occurred during file upload and training: {e}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 400
 
 
 def train_and_save_model(input_text, input_file):
@@ -82,8 +115,6 @@ def train_and_save_model(input_text, input_file):
     db.collection('models').document('trained_model').set(model_data)
 
     print("Model trained and stored in Firebase. Parameters:", parameters)
-
-    print("Model trained. Parameters:", parameters)
     print("Target variable:", target_variable)
 
 
@@ -208,7 +239,7 @@ def get_user_params():
 
 
 def generate_response(user_input):
-    global trained_model, preprocessor, poly, parameters, target_variable
+    global trained_model, preprocessor, poly, parameters, target_variable, file_uploaded, uploaded_file_path
 
     try:
         prompt = f"User: {user_input}\nAI:"
@@ -220,11 +251,12 @@ def generate_response(user_input):
         
         if option == '0':
             # change coffee.csv      ------- ERROR HERE - NEED TO PASS IN CORRECT FILE UPLOADED BY USER -------
-            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, 'coffee.csv')
+            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, uploaded_file_path)
             return trainer.summarize_training_process()
         elif option == '1':
             user_values = get_values(user_input, parameters)
-            trainer.predict(user_values, trained_model, parameters, preprocessor, poly)
+            prediction = trainer.predict(user_values, trained_model, parameters, preprocessor, poly)
+            return f"Prediction: {prediction}"
             
         elif option == '2':
             response = chat.send_message(prompt)
