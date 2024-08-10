@@ -93,7 +93,7 @@ class _ChatPageState extends State<ChatPage> {
             style: const TextStyle(
                 color: Colors.white, fontFamily: 'SFCompactText')),
         backgroundColor: const Color.fromARGB(255, 19, 19, 20),
-        foregroundColor: Colors.black,
+        foregroundColor: Colors.white,
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         actions: [
