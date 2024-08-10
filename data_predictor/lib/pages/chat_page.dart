@@ -4,7 +4,9 @@ import 'package:data_predictor/components/chat_bubble.dart';
 import 'package:data_predictor/components/chat_controller.dart';
 import 'package:data_predictor/services/auth/auth_service.dart';
 import 'package:data_predictor/services/chat_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -68,6 +70,25 @@ class _ChatPageState extends State<ChatPage> {
   void signOut() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     authService.signOut();
+  }
+
+  Future<void> pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null && result.files.isNotEmpty) {
+      final fileBytes = result.files.first.bytes;
+      final fileName = result.files.first.name;
+
+      if (fileBytes != null) {
+        try {
+          await FirebaseStorage.instance
+              .ref('uploads/$fileName')
+              .putData(fileBytes);
+        } catch (e) {
+          print('Error uploading file: $e');
+        }
+      }
+    }
   }
 
   void sendMessage() async {
@@ -156,7 +177,7 @@ class _ChatPageState extends State<ChatPage> {
 
           return ListView.builder(
             controller: _scrollController,
-            physics: const  BouncingScrollPhysics(),
+            physics: const BouncingScrollPhysics(),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final document = snapshot.data!.docs[index];
@@ -206,6 +227,26 @@ class _ChatPageState extends State<ChatPage> {
         ),
         child: Row(
           children: [
+            // Attach file button
+            Padding(
+              padding: const EdgeInsets.only(left: 7),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade700,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  hoverColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  iconSize: 15,
+                  icon: const Icon(Icons.attach_file,
+                      size: 15, color: Color.fromARGB(255, 30, 31, 32)),
+                  onPressed: pickFile,
+                ),
+              ),
+            ),
             // Text field
             Expanded(
               child: ChatController(

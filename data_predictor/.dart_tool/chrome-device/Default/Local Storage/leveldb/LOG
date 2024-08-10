@@ -1,7 +1,5 @@
-2024/08/10-02:26:34.700 2edc Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.a0288c4c\flutter_tools_chrome_device.10d45122\Default\Local Storage\leveldb/MANIFEST-000001
-2024/08/10-02:26:34.704 2edc Recovering log #4
-2024/08/10-02:26:34.707 2edc Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.a0288c4c\flutter_tools_chrome_device.10d45122\Default\Local Storage\leveldb/000004.log 
-2024/08/10-02:26:34.708 2edc Delete type=0 #3
-2024/08/10-02:52:28.596 2c10 Level-0 table #8: started
-2024/08/10-02:52:28.599 2c10 Level-0 table #8: 34047 bytes OK
-2024/08/10-02:52:28.601 2c10 Delete type=0 #4
+2024/08/10-03:13:43.869 1388 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.b1f9ebe7\flutter_tools_chrome_device.3dd983ce\Default\Local Storage\leveldb/MANIFEST-000001
+2024/08/10-03:13:43.872 1388 Recovering log #7
+2024/08/10-03:13:43.874 1388 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.b1f9ebe7\flutter_tools_chrome_device.3dd983ce\Default\Local Storage\leveldb/000007.log 
+2024/08/10-03:13:43.875 1388 Delete type=0 #3
+2024/08/10-03:13:43.875 1388 Delete type=0 #4
