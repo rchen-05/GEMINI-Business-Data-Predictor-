@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 
 class ChatService {
   
-  Future<List<ChatMessage>> getMessagesOnce(String conversationId) async {
+  Future<List<Message>> getMessagesOnce(String conversationId) async {
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
     final currentUserID = _firebaseAuth.currentUser?.uid;
 
@@ -27,26 +27,27 @@ class ChatService {
 
     return snapshot.docs.map((doc) {
       final data = doc.data();
-      return ChatMessage(
+      return Message(
         text: data['text'],
-        createdAt: (data['createdAt'] as Timestamp).toDate(),
-        user: ChatUser(id: data['senderId']), // Adjust based on your ChatUser structure
+        timestamp: (data['createdAt'] as Timestamp),
+        sender: data['sender'], // Adjust based on your ChatUser structure
       );
     }).toList();
   }
-  Future<void> saveMessageToFirestore(String conversationId,String sender, String message) async {
+
+
+
+  Future<void> saveMessageToFirestore(String conversationId, String sender, String message) async {
   try {
     final _firestore = FirebaseFirestore.instance;
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
     final currentUserID = _firebaseAuth.currentUser?.uid;
     final Timestamp timestamp = Timestamp.now();
 
-    
-
     Message newMessage = Message(
       text: message,
       sender: sender,
-      timestamp: timestamp
+      timestamp: timestamp,
     );
 
     if (currentUserID == null) {
@@ -55,10 +56,10 @@ class ChatService {
 
     final userConversationRef = _firestore.collection('users').doc(currentUserID).collection('conversations').doc(conversationId);
 
-    // Ensure the parent document exists
+    // Ensure the parent document exists and update the lastUpdated field
     await userConversationRef.set({
       'conversationId': conversationId,
-      'lastUpdated': Timestamp.now(),  // Optionally add metadata like lastUpdated
+      'lastUpdated': timestamp,  // Update lastUpdated with the current timestamp
     }, SetOptions(merge: true));
 
     // Add the message to the subcollection
@@ -90,7 +91,4 @@ class ChatService {
         .orderBy('timestamp', descending: false)
         .snapshots();
   }
-  
-
-  
 }

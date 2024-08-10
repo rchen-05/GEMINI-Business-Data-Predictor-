@@ -29,6 +29,7 @@ class _NewHomePageState extends State<NewHomePage> {
   Future<void> _startNewConversation() async {
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
     final currentUserID = _firebaseAuth.currentUser?.uid;
+    Timestamp timestamp = Timestamp.now();
     if (currentUserID == null) return;
 
     final newConversationDocRef = FirebaseFirestore.instance
@@ -36,9 +37,14 @@ class _NewHomePageState extends State<NewHomePage> {
         .doc(currentUserID)
         .collection('conversations')
         .doc();
-
     final newConversationId = newConversationDocRef.id;
-    final initialMessage = 'Hello! How can I help you today?';
+    
+    newConversationDocRef.set({
+      'conversationId': newConversationId,
+      'lastUpdated': timestamp,
+    });
+
+    const initialMessage = 'Hello! How can I help you today?';
 
     // Save the initial message to Firestore
     await _chatService.saveMessageToFirestore(
@@ -68,9 +74,12 @@ class _NewHomePageState extends State<NewHomePage> {
         .collection('users')
         .doc(currentUserID)
         .collection('conversations')
+        .orderBy('lastUpdated', descending: false)
         .get();
 
     final conversations = querySnapshot.docs;
+    final reversedConversations = conversations.reversed.toList();
+
 
     if (conversations.isEmpty) {
       // No conversations exist, so start a new one
@@ -81,7 +90,7 @@ class _NewHomePageState extends State<NewHomePage> {
 
     List<Map<String, dynamic>> conversationHistories = [];
 
-    for (var conversation in conversations) {
+    for (var conversation in reversedConversations) {
       final messagesSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserID)
@@ -120,6 +129,7 @@ class _NewHomePageState extends State<NewHomePage> {
           .collection('users')
           .doc(currentUserID)
           .collection('conversations')
+          
           .get();
 
       // Extract conversation IDs
