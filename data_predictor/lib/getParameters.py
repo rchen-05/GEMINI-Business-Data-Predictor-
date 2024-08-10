@@ -28,6 +28,7 @@ def get_all_parameters(input_file):  # get a smaller sample from the database
 
 # Get just the relevant ones from the all parameters
 def get_all_relevant_parameters(all_parameters, target_variable):
+    print("Getting all relevant parameters")
     model = genai.GenerativeModel(
         model_name="gemini-1.0-pro",
         generation_config=generation_config,
@@ -57,6 +58,7 @@ def get_all_relevant_parameters(all_parameters, target_variable):
 
     response = model.generate_content([prompt])
     all_relevant_parameters = str(response.parts[0])[7:-2]
+    print("All Relevant Parameters: " + all_relevant_parameters)
     return all_relevant_parameters
 
 
@@ -84,5 +86,5 @@ def get_user_parameters(user_input, all_relevant_parameters):
 
     response = model.generate_content([prompt])
     user_parameters = str(response.parts[0])[7:-2]
+    print("User Parameters: " + user_parameters)
     return user_parameters
-

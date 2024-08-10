@@ -43,11 +43,11 @@ def load_data(input_file):
 def select_target_and_features(input_text, df, input_file):
     global target_variable, parameters
     all_parameters = str(get_all_parameters(input_file)) #this gets all the parameters from the csv file
-    #print('1')
+    print('1')
     target_variable = get_target_variable(input_text, all_parameters) #this gets the target variable from the input text
-    #print('2')
+    print('2')
     relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable) #this gets the parameters that are relevant to the prediction
-    #print('3')
+    print('3')
     parameters = get_user_parameters(input_text, relevant_parameters).split(',') #this gets the parameters that the user has access to
     X = df[parameters]
     y = df[target_variable]
@@ -141,7 +141,8 @@ def evaluate_model(model, X_test, y_test):
     mae = mean_absolute_error(y_test, predictions)
     mse = mean_squared_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
-    return predictions
+    # return predictions
+    return mae, mse, r2
 
 
 def cross_validate_model(model, X, y, best_degree=None):
@@ -168,7 +169,7 @@ def summarize_training_process():
     summary = (
         f"Training Summary:\n"
         f"Target Variable: {target_variable}\n"
-        f"Parameters Used: {', '.join(parameters)}\n"
+        f"Parameters Used: {parameters}\n"
         f"Best Split Ratio: {best_split}\n"
         f"Best Degree for Polynomial Regression: {best_degree if best_degree is not None else 'N/A'}\n"
         f"Mean Absolute Error: {mae}\n"
@@ -180,6 +181,8 @@ def summarize_training_process():
 
 
 def train_model(input_text, input_file):
+    print("Training model now!!!!")
+
     df = load_data(input_file)
     X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
     categorical_columns = X.select_dtypes(include=['object']).columns
@@ -224,7 +227,6 @@ def train_model(input_text, input_file):
     return target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly
 
 
-
 def load_model():
     model = joblib.load('trained_model.pkl')
     preprocessor = joblib.load('preprocessor.pkl')
@@ -234,7 +236,7 @@ def load_model():
 
 if __name__ == "__main__":
     # main("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
-    parameters = train_model("I want to predict the global prices. i have access to the rank, name, platform,year, genre, publisherna sales and eu sales", "synthetic_vgsales_50.csv")
+    parameters = train_model("I want to predict the global prices. i have access to the rank, name, platform, year, genre, publisher sales and eu sales", "synthetic_vgsales_50.csv")
     # parameters = train_model("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
     print("Model Trained Successfully!. Parameters are: ", parameters)
     print(summarize_training_process())

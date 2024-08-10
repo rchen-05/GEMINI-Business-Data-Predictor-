@@ -51,4 +51,3 @@ def filter_chat(user_input):
 
     return option
 
-

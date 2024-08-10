@@ -8,9 +8,21 @@ from getTargetVariable import get_target_variable
 from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
 from getValues import get_values
 from chatFilter import filter_chat
+import firebase_admin
+from firebase_admin import credentials, firestore
+import pickle
+import io
 
-target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, None, None, None, None, None, None
+target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, \
+                                                                    None, None, None, None, None, None, None, None, None
 
+# Initialize Firebase
+# Path to service account key JSON file
+cred = credentials.Certificate("ServiceAccountKey.json")
+# Initialize the firebase app
+firebase_admin.initialize_app(cred)
+# Get a Firestore client
+db = firestore.client()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -46,6 +58,7 @@ parameters = None
 target_variable = None
 all_parameters = None
 relevant_parameters = None
+file_uploaded = False
 
 
 def train_and_save_model(input_text, input_file):
@@ -56,6 +69,19 @@ def train_and_save_model(input_text, input_file):
     parameters = get_user_parameters(input_text, relevant_parameters).split(',')
 
     trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
+
+    model_data = {
+        "model": pickle.dumps(trained_model),
+        "preprocessor": pickle.dumps(preprocessor),
+        "poly": pickle.dumps(poly),
+        "parameters": parameters,
+        "target_variable": target_variable
+    }
+
+    # Save the trained model to Firebase
+    db.collection('models').document('trained_model').set(model_data)
+
+    print("Model trained and stored in Firebase. Parameters:", parameters)
 
     print("Model trained. Parameters:", parameters)
     print("Target variable:", target_variable)
@@ -109,16 +135,25 @@ def chat_route():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if trained_model is None:
-        return jsonify({"error": "Model not trained yet"}), 400
-
     data = request.get_json()
     user_input = data.get('user_input')
 
     if not user_input:
         return jsonify({"error": "No user input provided"}), 400
-
+    # if trained_model is None:
+    #     return jsonify({"error": "Model not trained yet"}), 400
     try:
+        doc = db.collection('models').document('trained_model').get()
+        if not doc.exists:
+            return jsonify({"error": "No trained model has been found in firebase"}), 400
+
+        model_data = doc.to_dict()
+        trained_model = pickle.loads(model_data['model'])
+        preprocessor = pickle.loads(model_data['preprocessor'])
+        poly = pickle.loads(model_data['poly'])
+        parameters = model_data['parameters']
+        target_variable = model_data['target_variable']
+
         values = get_values(user_input, ','.join(parameters))
         user_data = dict(zip(parameters, values))
         prediction = trainer.predict(user_data, trained_model, parameters, preprocessor, poly)
@@ -126,6 +161,15 @@ def predict():
     except Exception as e:
         logging.error(f"A prediction error occurred: {str(e)}")
         return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
+
+    # try:
+    #     values = get_values(user_input, ','.join(parameters))
+    #     user_data = dict(zip(parameters, values))
+    #     prediction = trainer.predict(user_data, trained_model, parameters, preprocessor, poly)
+    #     return jsonify({target_variable: prediction})
+    # except Exception as e:
+    #     logging.error(f"A prediction error occurred: {str(e)}")
+    #     return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
 
 
 @app.route('/get_all_parameters', methods=['POST'])
@@ -164,10 +208,18 @@ def get_user_params():
 
 
 def generate_response(user_input):
+    global trained_model, preprocessor, poly, parameters, target_variable
+
     try:
         prompt = f"User: {user_input}\nAI:"
         option = filter_chat(user_input)
+
+        # check if file has been uploaded
+        if file_uploaded == False:
+            return "Please upload a file first"
+        
         if option == '0':
+            # change coffee.csv      ------- ERROR HERE - NEED TO PASS IN CORRECT FILE UPLOADED BY USER -------
             target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, 'coffee.csv')
             return trainer.summarize_training_process()
         elif option == '1':
@@ -183,8 +235,8 @@ def generate_response(user_input):
             return ai_response
         
     except Exception as e:
-        logging.error("An error occurred: {e}")
-        return "An error occurred: {e}"
+        logging.error("An error occurred: {}".format(e))
+        return "An error occurred: {}".format(e)
 
 
 def initialize_app():
