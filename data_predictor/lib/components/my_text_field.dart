@@ -11,26 +11,30 @@ class MyTextField extends StatelessWidget {
     required this.controller,
     required this.obscureText,
   });
+
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       decoration: InputDecoration(
-       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey.shade200),
-       ),
-       focusedBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
-       ),
-       fillColor: Colors.grey[300],
-       filled: true,
-       hintText: hintText,
-       hintStyle: const TextStyle(
-        color: Colors.grey,
-       ),
-
-
+        labelText: hintText,  // This sets the hint text as a floating label
+        labelStyle: const TextStyle(
+          color: Colors.grey,
+          fontFamily: 'SFCompactText',
+        ),
+        floatingLabelBehavior: FloatingLabelBehavior.auto,  // Automatically floats the label
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white),
+        ),
+        fillColor: const Color.fromARGB(255, 30, 31, 32),
+        filled: true,
+      ),
+      style: const TextStyle(
+        color: Colors.white,  // Text color inside the text field
       ),
     );
   }
