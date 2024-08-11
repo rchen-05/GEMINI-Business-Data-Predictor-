@@ -48,7 +48,14 @@ def select_target_and_features(input_text, df, input_file):
     print('2')
     relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable) #this gets the parameters that are relevant to the prediction
     print('3')
-    parameters = get_user_parameters(input_text, relevant_parameters).split(',') #this gets the parameters that the user has access to
+    parameters = get_user_parameters(input_text, relevant_parameters)  # .split(',') #this gets the parameters that the user has access to
+
+    if not parameters:
+        raise ValueError("No valid user parameters found.")
+
+    # parameters = parameters.split(',')
+    parameters = [param for param in parameters if param in df.columns]
+
     X = df[parameters]
     y = df[target_variable]
     return X, y, parameters, target_variable
@@ -181,50 +188,68 @@ def summarize_training_process():
 
 
 def train_model(input_text, input_file):
-    print("Training model now!!!!")
+    try:
+        print("Training model now!!!!")
 
-    df = load_data(input_file)
-    X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
-    categorical_columns = X.select_dtypes(include=['object']).columns
-    X_encoded, feature_names, preprocessor = preprocess_data(X, categorical_columns)
-    X_encoded = pd.DataFrame(X_encoded, columns=feature_names)
+        df = load_data(input_file)
+        print("Columns are: ", df.columns)
+        X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
 
-    suggested_model = get_regressor(input_file)
-    print("Suggested model:", suggested_model)
-    model = initialize_model(suggested_model)
+        if not isinstance(parameters, list):
+            raise ValueError("Parameters must be a string or a list.")
 
-    best_split, best_degree = find_best_split_and_degree(X_encoded, y, model, suggested_model)
-    print("Best split ratio:", best_split)
-    print("Best polynomial degree:", best_degree)
+        parameters = [param for param in parameters if param in df.columns]
 
-    X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=best_split, random_state=42)
-    poly = None
-    if best_degree is not None:
-        poly = PolynomialFeatures(degree=best_degree)
-        X_train = poly.fit_transform(X_train)
-        X_test = poly.transform(X_test)
+        if not parameters:
+            raise ValueError("No valid parameters found.")
 
-    model.fit(X_train, y_train)
-    model_filename = 'trained_model.pkl'
-    joblib.dump(model, model_filename)
-    print("Model saved as:", model_filename)
+        categorical_columns = X.select_dtypes(include=['object']).columns
+        X_encoded, feature_names, preprocessor = preprocess_data(X, categorical_columns)
+        X_encoded = pd.DataFrame(X_encoded, columns=feature_names)
 
-    preprocessor_filename = 'preprocessor.pkl'
-    joblib.dump(preprocessor, preprocessor_filename)
-    print("Preprocessor saved as:", preprocessor_filename)
+        suggested_model = get_regressor(input_file)
+        print("Suggested model:", suggested_model)
+        model = initialize_model(suggested_model)
 
-    poly_filename = 'poly_features.pkl'
-    joblib.dump(poly, poly_filename)
-    print("Polynomial features saved as:", poly_filename)
+        best_split, best_degree = find_best_split_and_degree(X_encoded, y, model, suggested_model)
+        print("Best split ratio:", best_split)
+        print("Best polynomial degree:", best_degree)
 
-    evaluate_model(model, X_test, y_test)
-    cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
-    print("Cross Validation Score:", cv_scores)
+        X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=best_split, random_state=42)
+        poly = None
+        if best_degree is not None:
+            poly = PolynomialFeatures(degree=best_degree)
+            X_train = poly.fit_transform(X_train)
+            X_test = poly.transform(X_test)
 
-    mae, mse, r2 = evaluate_model(model, X_test, y_test)
-    cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
+        model.fit(X_train, y_train)
+        model_filename = 'trained_model.pkl'
+        joblib.dump(model, model_filename)
+        print("Model saved as:", model_filename)
 
-    return target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly
+        preprocessor_filename = 'preprocessor.pkl'
+        joblib.dump(preprocessor, preprocessor_filename)
+        print("Preprocessor saved as:", preprocessor_filename)
+
+        poly_filename = 'poly_features.pkl'
+        joblib.dump(poly, poly_filename)
+        print("Polynomial features saved as:", poly_filename)
+
+        evaluate_model(model, X_test, y_test)
+        cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
+        print("Cross Validation Score:", cv_scores)
+
+        mae, mse, r2 = evaluate_model(model, X_test, y_test)
+        cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
+
+        return target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly
+    except KeyError as e:
+        print(f"KeyError: {e}")
+        raise
+
+    except Exception as e:
+        print(f"Error during training: {e}")
+        raise
 
 
 def load_model():

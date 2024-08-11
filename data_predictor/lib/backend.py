@@ -70,6 +70,7 @@ def upload_and_train():
     data = request.get_json()
     file_url = data.get('file_url')
     file_name = data.get('file_name')
+    user_input = data.get('user_input', 'Train a model using the uploaded file')
 
     if not file_url or not file_name:
         return jsonify({"error": "Missing required parameters"}), 400
@@ -84,7 +85,8 @@ def upload_and_train():
 
             file_uploaded = True
 
-            train_and_save_model("Train a model using the uploaded file", uploaded_file_path)
+            # train_and_save_model("Train a model using the uploaded file", uploaded_file_path)
+            train_and_save_model(user_input, uploaded_file_path)
 
             return jsonify({"message": "File uploaded and model trained successfully"})
         else:
@@ -94,41 +96,130 @@ def upload_and_train():
         return jsonify({"error": f"An error occurred: {str(e)}"}), 400
 
 
+# def train_and_save_model(input_text, input_file):
+#     global trained_model, preprocessor, poly, parameters, target_variable, all_parameters, relevant_parameters
+#
+#     # target_variable = get_target_variable(input_text, all_parameters)
+#     # relevant_parameters = get_all_relevant_parameters(input_file, target_variable)
+#     # parameters = get_user_parameters(input_text, relevant_parameters).split(',')
+#
+#     # trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
+#
+#     try:
+#         # train the model
+#         target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
+#         logging.info("Model trained successfully")
+#
+#         model_data = {
+#             "model": pickle.dumps(trained_model),
+#             "preprocessor": pickle.dumps(preprocessor),
+#             "poly": pickle.dumps(poly),
+#             "parameters": parameters,
+#             "target_variable": target_variable
+#         }
+#
+#         # Save the trained model to Firebase
+#         db.collection('models').document('trained_model').set(model_data)
+#
+#         print("Model trained and stored in Firebase. Parameters:", parameters)
+#         print("Target variable:", target_variable)
+#     except Exception as e:
+#         logging.error("An error in train_and_save_model: {}".format(str(e)))
+#         raise Exception("An error occurred during training")
+
+
 def train_and_save_model(input_text, input_file):
     global trained_model, preprocessor, poly, parameters, target_variable, all_parameters, relevant_parameters
 
-    target_variable = get_target_variable(input_text, all_parameters)
-    relevant_parameters = get_all_relevant_parameters(input_file, target_variable)
-    parameters = get_user_parameters(input_text, relevant_parameters).split(',')
+    try:
+        # # Get all parameters
+        # all_parameters = get_all_parameters(input_file)
+        # print("All parameters:", all_parameters)
+        #
+        # # Get target variable
+        # target_variable = get_target_variable(input_text, all_parameters)
+        # print("Target variable:", target_variable)
+        #
+        # # Get relevant parameters
+        # relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable)
+        # print("Relevant parameters:", relevant_parameters)
+        #
+        # # Get user parameters
+        # parameters = get_user_parameters(input_text, relevant_parameters)
+        # print("User parameters:", parameters)
 
-    trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
+        logging.info(f"Staring model training with input_text: {input_text} and input_file: {input_file}")
 
-    model_data = {
-        "model": pickle.dumps(trained_model),
-        "preprocessor": pickle.dumps(preprocessor),
-        "poly": pickle.dumps(poly),
-        "parameters": parameters,
-        "target_variable": target_variable
-    }
+        all_parameters = get_all_parameters(input_file)
+        logging.info(f"All parameters from CSV file: {all_parameters}")
 
-    # Save the trained model to Firebase
-    db.collection('models').document('trained_model').set(model_data)
+        if not input_text or input_text.lower() == 'train a model using the uploaded file':
+            target_variable = all_parameters[-1]
+            parameters = all_parameters[:-1]
+            logging.info(f"No specific query provided. Using all parameters. Target: {target_variable}, Parameters: {parameters}")
+        else:
+            target_variable = get_target_variable(input_text, all_parameters)
+            print("Target variable:", target_variable)
 
-    print("Model trained and stored in Firebase. Parameters:", parameters)
-    print("Target variable:", target_variable)
+            relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable)
+            print("Relevant parameters:", relevant_parameters)
+
+            parameters = get_user_parameters(input_text, relevant_parameters)
+            print("User parameters:", parameters)
+
+        if not parameters:
+            raise ValueError("No valid parameters found for model training. Please provide valid parameters")
+
+        # Train the model
+        target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
+        logging.info("Model trained successfully")
+
+        model_data = {
+            "model": pickle.dumps(trained_model),
+            "preprocessor": pickle.dumps(preprocessor),
+            "poly": pickle.dumps(poly),
+            "parameters": parameters,
+            "target_variable": target_variable,
+            "metrics": {
+                "best_split": best_split,
+                "best_degree": best_degree,
+                "mae": mae,
+                "mse": mse,
+                "r2": r2,
+                "cv_scores": cv_scores.tolist() if cv_scores is not None else None
+            }
+        }
+
+        # Save the trained model to Firebase
+        db.collection('models').document('trained_model').set(model_data)
+        logging.info("Model saved to Firebase successfully")
+
+        print("Model trained and stored in Firebase. Parameters:", parameters)
+        print("Target variable:", target_variable)
+        print("Parameters:", parameters)
+
+        return {
+            "message": "Model trained and saved successfully",
+            "target_variable": target_variable,
+            "parameters": parameters,
+        }
+
+    except Exception as e:
+        logging.error("An error in train_and_save_model: {}".format(str(e)))
+        raise Exception("An error occurred during training: {}".format(str(e)))
 
 
 @app.route('/train', methods=['POST'])
 def train_model():
     data = request.get_json()
-    input_test = data.get('input_test')
+    input_text = data.get('input_test')
     input_file = data.get('input_file')
 
-    if not input_test or not input_file:
+    if not input_text or not input_file:
         return jsonify({"error": "Missing required parameters"}), 400
 
     try:
-        train_and_save_model(input_test, input_file)
+        train_and_save_model(input_text, input_file)
         return jsonify({
             "message": "Model trained successfully",
             "parameters": parameters,
@@ -139,18 +230,6 @@ def train_model():
     except Exception as e:
         logging.error(f"A training error occurred: {e}")
         return jsonify({"error": f"A training error occurred - Failed to train model: {e}"}), 400
-
-
-@app.route('/get_parameters', methods=['GET'])
-def get_model_parameters():
-    if parameters is None:
-        return jsonify({"error": "Model not trained yet"}), 400
-    return jsonify({
-        "parameters": parameters,
-        "target_variable": target_variable,
-        "all_parameters": all_parameters,
-        "relevant_parameters": relevant_parameters
-    })
 
 
 @app.route('/chat', methods=['POST'])
@@ -203,41 +282,6 @@ def predict():
     #     return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
 
 
-@app.route('/get_all_parameters', methods=['POST'])
-def get_all_params():
-    data = request.get_json()
-    input_file = data.get('input_file')
-    if not input_file:
-        return jsonify({"error": "No input file provided"}), 400
-
-    all_params = get_all_parameters(input_file)
-    return jsonify({"all_parameters": all_params})
-
-
-@app.route('/get_relevant_parameters', methods=['POST'])
-def get_relevant_params():
-    data = request.get_json()
-    input_file = data.get('input_file')
-    target_var = data.get('target_variable')
-    if not input_file or not target_var:
-        return jsonify({"error": "Missing input file or target variable"}), 400
-
-    relevant_params = get_all_relevant_parameters(input_file, target_var)
-    return jsonify({"relevant_parameters": relevant_params})
-
-
-@app.route('/get_user_parameters', methods=['POST'])
-def get_user_params():
-    data = request.get_json()
-    user_input = data.get('user_input')
-    relevant_params = data.get('relevant_parameters')
-    if not user_input or not relevant_params:
-        return jsonify({"error": "Missing user input or relevant parameters"}), 400
-
-    user_params = get_user_parameters(user_input, relevant_params)
-    return jsonify({"user_parameters": user_params})
-
-
 def generate_response(user_input):
     global trained_model, preprocessor, poly, parameters, target_variable, file_uploaded, uploaded_file_path
 
@@ -251,14 +295,16 @@ def generate_response(user_input):
         
         if option == '0':
             # change coffee.csv      ------- ERROR HERE - NEED TO PASS IN CORRECT FILE UPLOADED BY USER -------
-            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, uploaded_file_path)
+            print("Choosing option 0")
+            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores,model, preprocessor, poly = trainer.train_model(user_input, file_uploaded)
             return trainer.summarize_training_process()
         elif option == '1':
+            print("Choosing option 1")
             user_values = get_values(user_input, parameters)
             prediction = trainer.predict(user_values, trained_model, parameters, preprocessor, poly)
             return f"Prediction: {prediction}"
-            
         elif option == '2':
+            print("Choosing option 2")
             response = chat.send_message(prompt)
             # Log the response for debugging
             logging.info(f"Full response: {response}")
