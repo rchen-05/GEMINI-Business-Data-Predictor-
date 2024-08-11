@@ -95,7 +95,7 @@ def get_all_relevant_parameters(all_parameters, target_variable):
 #         "output: ",
 #         """
 #
-#     response = model.generate_content([prompt])
+#     response = model.generate_content([prompt])x
 #     print("response: ", response)
 #
 #     response_text = response.text if hasattr(response, 'text') else str(response)
@@ -164,6 +164,8 @@ def get_user_parameters(user_input, all_relevant_parameters):
 
         if not user_parameters_list or len(user_parameters_list) == len(all_relevant_parameters_list):
             user_parameters_list = all_relevant_parameters_list[:-1]
+        else:
+            user_parameters_list = [param for param in user_parameters_list if param in all_relevant_parameters_list]
 
         # user_parameters_list = [param for param in user_parameters_list if param in all_relevant_parameters_list]
         print("Extracted user parameters:", user_parameters_list)

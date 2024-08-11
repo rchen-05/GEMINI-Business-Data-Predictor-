@@ -101,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> sendFileToBackend(String downloadURL, String fileName) async {
-    const backendURL = 'http://127.0.0.1:5001/upload_and_train';
+    const backendURL = 'http://127.0.0.1:5001/upload_file';
 
     try {
       final response = await http.post(
