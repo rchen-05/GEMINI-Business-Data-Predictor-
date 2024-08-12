@@ -42,31 +42,97 @@ class _ChatPageState extends State<ChatPage> {
     _scrollController = ScrollController();
   }
 
-  Future<void> getChatResponse(String userMessage) async {
-    const url = 'http://127.0.0.1:5001/chat';
+  Future<void> sendMessagesToBackEnd(String conversationID) async {
+  const url = 'http://127.0.0.1:5001/get_messages'; // Replace with your backend URL
 
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"message": userMessage}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final aiResponse = data['response'];
-        await _chatService.saveMessageToFirestore(
-          widget.conversationID,
-          'bot',
-          aiResponse,
-        );
-      } else {
-        print('Failed to get response from the server.');
-      }
-    } catch (e) {
-      print('Error: $e');
+  try {
+    // Get the current user ID
+    FirebaseAuth auth = FirebaseAuth.instance;
+    final currentUserID = auth.currentUser?.uid;
+    if (currentUserID == null) {
+      throw Exception('User not logged in');
     }
+
+    // Retrieve messages from Firestore
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserID)
+        .collection('conversations')
+        .doc(conversationID)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .get();
+
+    // Prepare messages for sending
+    final messages = snapshot.docs.map((doc) {
+      final data = doc.data();
+      return data['text']; // Only send the text field
+    }).toList();
+
+    // Send messages to the backend
+    final response = await http.post(
+      Uri.parse(url),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'messages': messages, // Send only the messages
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Successfully sent messages
+      print('Messages sent successfully');
+    } else {
+      // Failed to send messages
+      print('Failed to send messages: ${response.body}');
+    }
+  } catch (e) {
+    // Handle errors
+    print('Error sending messages: $e');
   }
+}
+
+  Future<void> getChatResponse(String userMessage, String conversationID) async {
+  const url = 'http://127.0.0.1:5001/chat'; // Replace with your backend URL
+
+  try {
+    // Get the current user ID
+    FirebaseAuth auth = FirebaseAuth.instance;
+    final currentUserID = auth.currentUser?.uid;
+    if (currentUserID == null) {
+      throw Exception('User not logged in');
+    }
+
+    // Prepare the request body with message, conversationID, and currentUser
+    final requestBody = jsonEncode({
+      'message': userMessage,
+      'conversationID': conversationID,
+      'currentUser': currentUserID,
+    });
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {"Content-Type": "application/json"},
+      body: requestBody,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final aiResponse = data['response'];
+      // Assuming _chatService.saveMessageToFirestore is a function to save the message
+      await _chatService.saveMessageToFirestore(
+        conversationID,
+        'bot',
+        aiResponse,
+      );
+    } else {
+      print('Failed to get response from the server.');
+    }
+  } catch (e) {
+    print('Error: $e');
+  }
+}
 
   void signOut() async {
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -82,13 +148,12 @@ class _ChatPageState extends State<ChatPage> {
 
       if (fileBytes != null) {
         try {
-            final ref = FirebaseStorage.instance.ref('uploads/$fileName');
-            await ref.putData(fileBytes);
+          final ref = FirebaseStorage.instance.ref('uploads/$fileName');
+          await ref.putData(fileBytes);
 
-            final downloadURL = await ref.getDownloadURL();
+          final downloadURL = await ref.getDownloadURL();
 
-            await sendFileToBackend(downloadURL, fileName);
-
+          await sendFileToBackend(downloadURL, fileName);
 
 //           await FirebaseStorage.instance
 //               .ref('uploads/$fileName')
@@ -108,8 +173,8 @@ class _ChatPageState extends State<ChatPage> {
         Uri.parse(backendURL),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-        "file_url": downloadURL,
-        "file_name": fileName,
+          "file_url": downloadURL,
+          "file_name": fileName,
         }),
       );
 
@@ -132,7 +197,7 @@ class _ChatPageState extends State<ChatPage> {
         _messageController.text,
       );
       // Clear the text field after sending the message
-      getChatResponse(_messageController.text);
+      getChatResponse(_messageController.text, widget.conversationID);
       _messageController.clear();
     }
   }

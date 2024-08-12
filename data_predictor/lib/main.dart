@@ -1,8 +1,11 @@
 
+import 'dart:convert';
+
 import 'package:data_predictor/pages/home_page.dart';
 import 'package:data_predictor/services/auth/auth_gate.dart';
 import 'package:data_predictor/services/auth/auth_service.dart';
 import 'package:data_predictor/services/auth/login_or_register.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
@@ -32,6 +35,7 @@ Future<void> main() async {
     ),
   );
 }
+
 
 
 class MyApp extends StatelessWidget{
@@ -123,5 +127,41 @@ Future<void> deleteAllMessages(String conversationId) async {
     print('All messages deleted successfully.');
   } catch (e) {
     print('Error deleting messages: $e');
+  }
+}
+
+Future<String?> getIdToken() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    // Get the ID token
+    String? idToken = await user.getIdToken(true);
+    return idToken;
+  }
+  return null;
+}
+
+Future<void> sendIdTokenToBackend() async {
+  String? idToken = await getIdToken();
+
+  if (idToken != null) {
+    final response = await http.post(
+      Uri.parse('https://your-backend-url/current_user'), // Replace with your backend URL
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'id_token': idToken,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Successfully retrieved user details
+      print('User details: ${response.body}');
+    } else {
+      // Failed to retrieve user details
+      print('Failed to retrieve user details');
+    }
+  } else {
+    print('No user is currently signed in.');
   }
 }

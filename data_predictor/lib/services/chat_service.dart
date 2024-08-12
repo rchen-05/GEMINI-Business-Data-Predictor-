@@ -1,7 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-// i want to import my chat_page file
-
-//import dash_chat_2.dart
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:data_predictor/models/message.dart';
 import 'package:data_predictor/pages/chat_page.dart';
@@ -13,8 +10,6 @@ class ChatService {
   Future<List<Message>> getMessagesOnce(String conversationId) async {
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
     final currentUserID = _firebaseAuth.currentUser?.uid;
-
-    
 
     final snapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -30,50 +25,52 @@ class ChatService {
       return Message(
         text: data['text'],
         timestamp: (data['createdAt'] as Timestamp),
-        sender: data['sender'], // Adjust based on your ChatUser structure
+        sender: data['sender'],
       );
     }).toList();
   }
 
-
-
   Future<void> saveMessageToFirestore(String conversationId, String sender, String message) async {
-  try {
-    final _firestore = FirebaseFirestore.instance;
-    final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-    final currentUserID = _firebaseAuth.currentUser?.uid;
-    final Timestamp timestamp = Timestamp.now();
+    try {
+      final _firestore = FirebaseFirestore.instance;
+      final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+      final currentUserID = _firebaseAuth.currentUser?.uid;
+      final Timestamp timestamp = Timestamp.now();
 
-    Message newMessage = Message(
-      text: message,
-      sender: sender,
-      timestamp: timestamp,
-    );
+      Message newMessage = Message(
+        text: message,
+        sender: sender,
+        timestamp: timestamp,
+      );
 
-    if (currentUserID == null) {
-      throw Exception("No user logged in");
+      if (currentUserID == null) {
+        throw Exception("No user logged in");
+      }
+
+      final userConversationRef = _firestore.collection('users')
+          .doc(currentUserID)
+          .collection('conversations')
+          .doc(conversationId);
+
+      // Ensure the parent document exists and update the lastUpdated field
+      await userConversationRef.set({
+        'conversationId': conversationId,
+        'lastUpdated': timestamp,  // Update lastUpdated with the current timestamp
+      }, SetOptions(merge: true));
+
+      // Add the message to the subcollection
+      await userConversationRef.collection('messages').add({
+        'text': newMessage.text,
+        'sender': newMessage.sender,
+        'timestamp': newMessage.timestamp,
+      });
+
+      print('Message saved successfully');
+    } catch (e) {
+      print('Error saving message: $e');
     }
-
-    final userConversationRef = _firestore.collection('users').doc(currentUserID).collection('conversations').doc(conversationId);
-
-    // Ensure the parent document exists and update the lastUpdated field
-    await userConversationRef.set({
-      'conversationId': conversationId,
-      'lastUpdated': timestamp,  // Update lastUpdated with the current timestamp
-    }, SetOptions(merge: true));
-
-    // Add the message to the subcollection
-    await userConversationRef.collection('messages').add({
-      'text': newMessage.text,
-      'sender': newMessage.sender,
-      'timestamp': newMessage.timestamp,
-    });
-
-    print('Message saved successfully');
-  } catch (e) {
-    print('Error saving message: $e');
   }
-}
+
   Stream<QuerySnapshot> getMessages(String conversationId) {
     final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
     final currentUserID = _firebaseAuth.currentUser?.uid;
@@ -89,6 +86,23 @@ class ChatService {
         .doc(conversationId)
         .collection('messages')
         .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
+
+  // Add this method to get all conversations ordered by lastUpdated
+  Stream<QuerySnapshot> getUserConversations() {
+    final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+    final currentUserID = _firebaseAuth.currentUser?.uid;
+
+    if (currentUserID == null) {
+      throw Exception("No user logged in");
+    }
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserID)
+        .collection('conversations')
+        .orderBy('lastUpdated', descending: true)  // Order by lastUpdated
         .snapshots();
   }
 }

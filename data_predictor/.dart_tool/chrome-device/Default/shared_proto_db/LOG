@@ -1,12 +1,20 @@
-<<<<<<< HEAD
-2024/08/10-18:35:09.298 5f04 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\shared_proto_db/MANIFEST-000001
-2024/08/10-18:35:09.299 5f04 Recovering log #16
-2024/08/10-18:35:09.299 5f04 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\shared_proto_db/000016.log 
-2024/08/10-18:35:09.299 5f04 Delete type=0 #3
-2024/08/10-18:35:09.299 5f04 Delete type=0 #4
-2024/08/10-18:35:09.300 5f04 Delete type=0 #7
-2024/08/10-18:35:09.300 5f04 Delete type=0 #10
-2024/08/10-18:35:09.300 5f04 Delete type=0 #13
-=======
-2024/08/12-15:39:46.830 fc03 Reusing MANIFEST /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/shared_proto_db/MANIFEST-000001
->>>>>>> WORKS-FINAL-FINAL
+2024/08/12-18:16:32.817 2af4 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.a03e5da\flutter_tools_chrome_device.299033e4\Default\shared_proto_db/MANIFEST-000001
+2024/08/12-18:16:32.818 2af4 Recovering log #16
+2024/08/12-18:16:32.819 2af4 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.a03e5da\flutter_tools_chrome_device.299033e4\Default\shared_proto_db/000016.log 
+2024/08/12-18:16:32.820 2af4 Delete type=0 #3
+2024/08/12-18:16:32.820 2af4 Delete type=0 #4
+2024/08/12-18:16:32.820 2af4 Delete type=0 #7
+2024/08/12-18:16:32.820 2af4 Delete type=0 #10
+2024/08/12-18:16:32.820 2af4 Delete type=0 #13
+2024/08/12-18:16:48.158 1254 Level-0 table #20: started
+2024/08/12-18:16:48.162 1254 Level-0 table #20: 136438 bytes OK
+2024/08/12-18:16:48.165 1254 Delete type=0 #16
+2024/08/12-18:16:48.165 1254 Compacting 4@0 + 1@1 files
+2024/08/12-18:16:48.169 1254 Generated table #21@0: 1367 keys, 139096 bytes
+2024/08/12-18:16:48.169 1254 Compacted 4@0 + 1@1 files => 139096 bytes
+2024/08/12-18:16:48.170 1254 compacted to: files[ 0 1 1 0 0 0 0 ]
+2024/08/12-18:16:48.170 1254 Delete type=2 #8
+2024/08/12-18:16:48.170 1254 Delete type=2 #11
+2024/08/12-18:16:48.170 1254 Delete type=2 #14
+2024/08/12-18:16:48.170 1254 Delete type=2 #17
+2024/08/12-18:16:48.170 1254 Delete type=2 #20

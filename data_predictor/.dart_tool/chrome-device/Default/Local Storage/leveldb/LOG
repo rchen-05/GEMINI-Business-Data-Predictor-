@@ -1,11 +1,5 @@
-<<<<<<< HEAD
-2024/08/10-18:35:09.200 2974 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\Local Storage\leveldb/MANIFEST-000001
-2024/08/10-18:35:09.204 2974 Recovering log #7
-2024/08/10-18:35:09.207 2974 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\Local Storage\leveldb/000007.log 
-2024/08/10-18:35:09.208 2974 Delete type=0 #3
-2024/08/10-18:35:09.208 2974 Delete type=0 #4
-=======
-2024/08/12-15:39:46.272 2e03 Reusing MANIFEST /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/Local Storage/leveldb/MANIFEST-000001
-2024/08/12-15:39:46.274 2e03 Recovering log #3
-2024/08/12-15:39:46.275 2e03 Reusing old log /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/Local Storage/leveldb/000003.log 
->>>>>>> WORKS-FINAL-FINAL
+2024/08/12-18:16:32.664 3af4 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.a03e5da\flutter_tools_chrome_device.299033e4\Default\Local Storage\leveldb/MANIFEST-000001
+2024/08/12-18:16:32.669 3af4 Recovering log #7
+2024/08/12-18:16:32.671 3af4 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.a03e5da\flutter_tools_chrome_device.299033e4\Default\Local Storage\leveldb/000007.log 
+2024/08/12-18:16:32.672 3af4 Delete type=0 #3
+2024/08/12-18:16:32.672 3af4 Delete type=0 #4

@@ -38,7 +38,7 @@ class _NewHomePageState extends State<NewHomePage> {
         .collection('conversations')
         .doc();
     final newConversationId = newConversationDocRef.id;
-    
+
     newConversationDocRef.set({
       'conversationId': newConversationId,
       'lastUpdated': timestamp,
@@ -74,12 +74,10 @@ class _NewHomePageState extends State<NewHomePage> {
         .collection('users')
         .doc(currentUserID)
         .collection('conversations')
-        .orderBy('lastUpdated', descending: false)
+        .orderBy('lastUpdated', descending: true) // Order by latest updated conversation
         .get();
 
     final conversations = querySnapshot.docs;
-    final reversedConversations = conversations.reversed.toList();
-
 
     if (conversations.isEmpty) {
       // No conversations exist, so start a new one
@@ -90,19 +88,19 @@ class _NewHomePageState extends State<NewHomePage> {
 
     List<Map<String, dynamic>> conversationHistories = [];
 
-    for (var conversation in reversedConversations) {
+    for (var conversation in conversations) {
       final messagesSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUserID)
           .collection('conversations')
           .doc(conversation.id)
           .collection('messages')
-          .orderBy('timestamp', descending: false)
+          .orderBy('timestamp', descending: true) // Get the most recent message
           .limit(1)
           .get();
 
       final lastMessage = messagesSnapshot.docs.isNotEmpty
-          ? messagesSnapshot.docs.first.data()['text']
+          ? messagesSnapshot.docs.first.data()['text'] as String
           : 'No messages yet';
 
       conversationHistories.add({
@@ -129,7 +127,6 @@ class _NewHomePageState extends State<NewHomePage> {
           .collection('users')
           .doc(currentUserID)
           .collection('conversations')
-          
           .get();
 
       // Extract conversation IDs

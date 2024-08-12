@@ -1,20 +1,22 @@
+import firebase_admin.auth
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Add this import
 import google.generativeai as genai
 from csvToString import convert_csv_to_string
 import logging
+import trainer
 from getTargetVariable import get_target_variable
 from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
 from getValues import get_values
 from chatFilter import filter_chat
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, auth
 import pickle
 import requests
 import os
 import io
 from trainer import predict
-
+import firebase_admin.auth
 target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, \
                                                                     None, None, None, None, None, None, None, None, None
 
@@ -40,6 +42,10 @@ api_key = os.getenv('API_KEY')
 
 genai.configure(api_key=api_key)
 
+conversationID = None
+userID = None
+messages = None
+
 generation_config = {
     "temperature": 0.15,
     "top_p": 1,
@@ -53,8 +59,43 @@ model = genai.GenerativeModel(
     generation_config=generation_config,
 )
 
-chat = model.start_chat(history=[])
-conversation_history = []
+
+
+
+def format_messages_for_gemini(messages):
+    formatted_messages = []
+    for message in messages:
+        # Extract 'text' and 'sender' from each message
+        text = message.get('text', '')
+        sender = message.get('sender', 'unknown')
+        
+        # Map sender to role as required by Gemini
+        if sender == 'user':
+            role = 'user'
+        else:
+            role = 'system'  # Assuming non-user messages are system messages
+
+        # Append formatted message to the list
+        formatted_messages.append({
+            'role': role,
+            'content': text
+        })
+    
+    return formatted_messages
+# get the chat history from firebase
+messages_ref = db.collection('users').document(userID).collection('conversations').document(conversationID).collection('messages')
+#get the text and sender from each message
+
+messages_query = messages_ref.order_by('createdAt', direction=firestore.Query.DESCENDING).stream()
+for doc in messages_query:
+    data = doc.to_dict()
+    # Extract 'text' and 'sender', defaulting to empty string or 'unknown' if not present
+    text = data.get('text', '')
+    sender = data.get('sender', 'unknown')
+    messages.append({'text': text, 'sender': sender})
+gemini_history = format_messages_for_gemini(messages)
+chat = model.start_chat(history = gemini_history)
+
 
 # Global variables
 trained_model = None
@@ -97,123 +138,6 @@ def upload_file():
         logging.error(f"An error occurred during file upload: {e}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 400
 
-
-# def train_and_save_model(input_text, input_file):
-#     global trained_model, preprocessor, poly, parameters, target_variable, all_parameters, relevant_parameters
-#
-#     # target_variable = get_target_variable(input_text, all_parameters)
-#     # relevant_parameters = get_all_relevant_parameters(input_file, target_variable)
-#     # parameters = get_user_parameters(input_text, relevant_parameters).split(',')
-#
-#     # trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
-#
-#     try:
-#         # train the model
-#         target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
-#         logging.info("Model trained successfully")
-#
-#         model_data = {
-#             "model": pickle.dumps(trained_model),
-#             "preprocessor": pickle.dumps(preprocessor),
-#             "poly": pickle.dumps(poly),
-#             "parameters": parameters,
-#             "target_variable": target_variable
-#         }
-#
-#         # Save the trained model to Firebase
-#         db.collection('models').document('trained_model').set(model_data)
-#
-#         print("Model trained and stored in Firebase. Parameters:", parameters)
-#         print("Target variable:", target_variable)
-#     except Exception as e:
-#         logging.error("An error in train_and_save_model: {}".format(str(e)))
-#         raise Exception("An error occurred during training")
-
-
-# def train_and_save_model(input_text, input_file):
-#     global trained_model, preprocessor, poly, parameters, target_variable, all_parameters, relevant_parameters
-#
-#     try:
-#         # # Get all parameters
-#         # all_parameters = get_all_parameters(input_file)
-#         # print("All parameters:", all_parameters)
-#         #
-#         # # Get target variable
-#         # target_variable = get_target_variable(input_text, all_parameters)
-#         # print("Target variable:", target_variable)
-#         #
-#         # # Get relevant parameters
-#         # relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable)
-#         # print("Relevant parameters:", relevant_parameters)
-#         #
-#         # # Get user parameters
-#         # parameters = get_user_parameters(input_text, relevant_parameters)
-#         # print("User parameters:", parameters)
-#
-#         logging.info(f"Staring model training with input_text: {input_text} and input_file: {input_file}")
-#
-#         all_parameters = get_all_parameters(input_file)
-#         logging.info(f"All parameters from CSV file: {all_parameters}")
-#
-#         if not input_text or input_text.lower() == 'train a model using the uploaded file':
-#             target_variable = all_parameters[-1]
-#             parameters = all_parameters[:-1]
-#             logging.info(f"No specific query provided. Using all parameters. Target: {target_variable}, Parameters: {parameters}")
-#         else:
-#             target_variable = get_target_variable(input_text, all_parameters)
-#             print("Target variable:", target_variable)
-#
-#             relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable)
-#             print("Relevant parameters:", relevant_parameters)
-#
-#             # parameters = get_user_parameters(input_text, relevant_parameters)
-#             # print("User parameters:", parameters)
-#
-#             df = trainer.load_data(input_file)
-#             print("Columns are: ", df.columns)
-#             X, y, parameters, target_variable = trainer.select_target_and_features(input_text, df, input_file)
-#             print("Parameters are: ", parameters)
-#
-#         if not parameters:
-#             raise ValueError("No valid parameters found for model training. Please provide valid parameters")
-#
-#         # Train the model
-#         target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, trained_model, preprocessor, poly = trainer.train_model(input_text, input_file)
-#         logging.info("Model trained successfully")
-#
-#         model_data = {
-#             "model": pickle.dumps(trained_model),
-#             "preprocessor": pickle.dumps(preprocessor),
-#             "poly": pickle.dumps(poly),
-#             "parameters": parameters,
-#             "target_variable": target_variable,
-#             "metrics": {
-#                 "best_split": best_split,
-#                 "best_degree": best_degree,
-#                 "mae": mae,
-#                 "mse": mse,
-#                 "r2": r2,
-#                 "cv_scores": cv_scores.tolist() if cv_scores is not None else None
-#             }
-#         }
-#
-#         # Save the trained model to Firebase
-#         db.collection('models').document('trained_model').set(model_data)
-#         logging.info("Model saved to Firebase successfully")
-#
-#         print("Model trained and stored in Firebase. Parameters:", parameters)
-#         print("Target variable:", target_variable)
-#         print("Parameters:", parameters)
-#
-#         return {
-#             "message": "Model trained and saved successfully",
-#             "target_variable": target_variable,
-#             "parameters": parameters,
-#         }
-#
-#     except Exception as e:
-#         logging.error("An error in train_and_save_model: {}".format(str(e)))
-#         raise Exception("An error occurred during training: {}".format(str(e)))
 
 
 def train_and_save_model(input_text, file_uploaded):
@@ -290,8 +214,11 @@ def train_model():
 
 @app.route('/chat', methods=['POST'])
 def chat_route():
+    global conversationID, userID
     data = request.get_json()
     user_input = data.get('message')
+    userID = data.get('userID')
+    conversationID = data.get('conversationID')
     if not user_input:
         return jsonify({"error": "No message provided"}), 400
     
@@ -299,11 +226,52 @@ def chat_route():
     return jsonify({"response": response})
 
 
+def format_messages_for_gemini(messages):
+    formatted_messages = []
+    
+    # Define the role mappings for the messages
+    role_mapping = {
+        'user': 'user',
+        'bot': 'model',  # Assuming 'bot' role should be mapped to 'model'
+        'system': 'system'  # If you have any system messages, add appropriate mapping
+    }
+    
+    for message in messages:
+        # Extract 'text' and 'sender' from each message
+        text = message.get('text', '')
+        sender = message.get('sender', 'unknown')
+        
+        # Map sender to role as required by Gemini
+        role = role_mapping.get(sender, 'system')  # Default to 'system' if sender is unknown
 
+        # Append formatted message to the list with the specified format
+        formatted_messages.append({
+            'role': role,
+            'parts': [
+                {
+                    'text': text
+                }
+            ]
+        })
+    
+    return {'contents': formatted_messages}
 
 
 def generate_response(user_input):
-    global trained_model, preprocessor, poly, parameters, target_variable, file_uploaded, uploaded_file_path
+
+    global trained_model, preprocessor, poly, parameters, target_variable, file_uploaded, uploaded_file_path, messages
+
+    messages_ref = db.collection('users').document(userID).collection('conversations').document(conversationID).collection('messages')
+    #get the text and sender from each message
+    messages = []
+    messages_query = messages_ref.order_by('createdAt', direction=firestore.Query.DESCENDING).stream()
+    for doc in messages_query:
+        data = doc.to_dict()
+        # Extract 'text' and 'sender', defaulting to empty string or 'unknown' if not present
+        text = data.get('text', '')
+        sender = data.get('sender', 'unknown')
+        messages.append({'text': text, 'sender': sender})
+
 
     try:
         prompt = f"User: {user_input}\nAI:"
@@ -355,18 +323,3 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
 
 
-#
-# @app.route('/predict', methods=['POST'])
-# def predict():
-#     if trained_model is None:
-#         return jsonify({"error": "Model not trained yet"}), 400
-#
-#     data = request.get_json()
-#     user_input = {param: data.get(param) for param in parameters}
-#
-#     try:
-#         prediction = trainer.predict_sales(user_input, trained_model, parameters, preprocessor, poly)
-#         return jsonify({target_variable: prediction})
-#     except Exception as e:
-#         logging.error(f"A prediction error occurred: {str(e)}")
-#         return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
