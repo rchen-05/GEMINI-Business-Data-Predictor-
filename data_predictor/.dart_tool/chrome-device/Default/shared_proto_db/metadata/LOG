@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 2024/08/10-18:35:09.294 5f04 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\shared_proto_db\metadata/MANIFEST-000001
 2024/08/10-18:35:09.295 5f04 Recovering log #3
 2024/08/10-18:35:09.295 5f04 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\shared_proto_db\metadata/000003.log 
+=======
+2024/08/12-15:39:46.826 fc03 Reusing MANIFEST /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/shared_proto_db/metadata/MANIFEST-000001
+2024/08/12-15:39:46.826 fc03 Recovering log #3
+2024/08/12-15:39:46.827 fc03 Reusing old log /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/shared_proto_db/metadata/000003.log 
+>>>>>>> WORKS-FINAL-FINAL

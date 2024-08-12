@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 2024/08/10-18:35:09.298 5f04 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\shared_proto_db/MANIFEST-000001
 2024/08/10-18:35:09.299 5f04 Recovering log #16
 2024/08/10-18:35:09.299 5f04 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.442e9c0d\flutter_tools_chrome_device.dcb50a99\Default\shared_proto_db/000016.log 
@@ -6,3 +7,6 @@
 2024/08/10-18:35:09.300 5f04 Delete type=0 #7
 2024/08/10-18:35:09.300 5f04 Delete type=0 #10
 2024/08/10-18:35:09.300 5f04 Delete type=0 #13
+=======
+2024/08/12-15:39:46.830 fc03 Reusing MANIFEST /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/shared_proto_db/MANIFEST-000001
+>>>>>>> WORKS-FINAL-FINAL

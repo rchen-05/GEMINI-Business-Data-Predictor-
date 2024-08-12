@@ -20,6 +20,7 @@ from getParameters import get_user_parameters, get_all_parameters, get_all_relev
 from getValues import get_values
 
 
+
 # Declare global variables
 target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores = None, None, None, None, None, None, None, None
 model, preprocessor, poly = None, None, None
@@ -43,9 +44,19 @@ def load_data(input_file):
 def select_target_and_features(input_text, df, input_file):
     global target_variable, parameters
     all_parameters = str(get_all_parameters(input_file)) #this gets all the parameters from the csv file
+    print('1')
     target_variable = get_target_variable(input_text, all_parameters) #this gets the target variable from the input text
-    relevant_parameters = get_all_relevant_parameters(input_file, target_variable) #this gets the parameters that are relevant to the prediction
-    parameters = get_user_parameters(input_text, relevant_parameters).split(',') #this gets the parameters that the user has access to
+    print('2')
+    relevant_parameters = get_all_relevant_parameters(all_parameters, target_variable) #this gets the parameters that are relevant to the prediction
+    print('3')
+    parameters = get_user_parameters(input_text, relevant_parameters)  # .split(',') #this gets the parameters that the user has access to
+
+    if not parameters:
+        raise ValueError("No valid user parameters found.")
+
+    # parameters = parameters.split(',')
+    parameters = [param for param in parameters if param in df.columns]
+
     X = df[parameters]
     y = df[target_variable]
     return X, y, parameters, target_variable
@@ -138,7 +149,8 @@ def evaluate_model(model, X_test, y_test):
     mae = mean_absolute_error(y_test, predictions)
     mse = mean_squared_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
-    return predictions
+    # return predictions
+    return mae, mse, r2
 
 
 def cross_validate_model(model, X, y, best_degree=None):
@@ -152,7 +164,7 @@ def cross_validate_model(model, X, y, best_degree=None):
     return cv_scores
 
 
-def predict_sales(data, model, parameters, preprocessor, poly=None):
+def predict(data, model, parameters, preprocessor, poly=None):
     df = pd.DataFrame([data], columns=parameters)
     df_encoded = preprocessor.transform(df)
     if poly is not None:
@@ -165,7 +177,7 @@ def summarize_training_process():
     summary = (
         f"Training Summary:\n"
         f"Target Variable: {target_variable}\n"
-        f"Parameters Used: {', '.join(parameters)}\n"
+        f"Parameters Used: {parameters}\n"
         f"Best Split Ratio: {best_split}\n"
         f"Best Degree for Polynomial Regression: {best_degree if best_degree is not None else 'N/A'}\n"
         f"Mean Absolute Error: {mae}\n"
@@ -177,52 +189,68 @@ def summarize_training_process():
 
 
 def train_model(input_text, input_file):
-    df = load_data(input_file)
-    X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
-    categorical_columns = X.select_dtypes(include=['object']).columns
-    X_encoded, feature_names, preprocessor = preprocess_data(X, categorical_columns)
-    X_encoded = pd.DataFrame(X_encoded, columns=feature_names)
+    try:
+        print("Training model now!!!!")
 
-    suggested_model = get_regressor(input_file)
-    print("Suggested model:", suggested_model)
-    model = initialize_model(suggested_model)
+        df = load_data(input_file)
+        print("Columns are: ", df.columns)
+        X, y, parameters, target_variable = select_target_and_features(input_text, df, input_file)
 
-    best_split, best_degree = find_best_split_and_degree(X_encoded, y, model, suggested_model)
-    print("Best split ratio:", best_split)
-    print("Best polynomial degree:", best_degree)
+        if not isinstance(parameters, list):
+            raise ValueError("Parameters must be a string or a list.")
 
-    X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=best_split, random_state=42)
-    poly = None
-    if best_degree is not None:
-        poly = PolynomialFeatures(degree=best_degree)
-        X_train = poly.fit_transform(X_train)
-        X_test = poly.transform(X_test)
+        parameters = [param for param in parameters if param in df.columns]
 
-    model.fit(X_train, y_train)
-    model_filename = 'trained_model.pkl'
-    joblib.dump(model, model_filename)
-    print("Model saved as:", model_filename)
+        if not parameters:
+            raise ValueError("No valid parameters found.")
 
-    preprocessor_filename = 'preprocessor.pkl'
-    joblib.dump(preprocessor, preprocessor_filename)
-    print("Preprocessor saved as:", preprocessor_filename)
+        categorical_columns = X.select_dtypes(include=['object']).columns
+        X_encoded, feature_names, preprocessor = preprocess_data(X, categorical_columns)
+        X_encoded = pd.DataFrame(X_encoded, columns=feature_names)
 
-    poly_filename = 'poly_features.pkl'
-    joblib.dump(poly, poly_filename)
-    print("Polynomial features saved as:", poly_filename)
+        suggested_model = get_regressor(input_file)
+        print("Suggested model:", suggested_model)
+        model = initialize_model(suggested_model)
 
-    evaluate_model(model, X_test, y_test)
-    cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
-    print("Cross Validation Score:", cv_scores)
+        best_split, best_degree = find_best_split_and_degree(X_encoded, y, model, suggested_model)
+        print("Best split ratio:", best_split)
+        print("Best polynomial degree:", best_degree)
 
-    user_data = {param: input(f"Enter value for {param}: ") for param in parameters}
-    predicted_sales = predict_sales(user_data, model, parameters, preprocessor, poly)
-    print("Predicted target:", predicted_sales)
+        X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=best_split, random_state=42)
+        poly = None
+        if best_degree is not None:
+            poly = PolynomialFeatures(degree=best_degree)
+            X_train = poly.fit_transform(X_train)
+            X_test = poly.transform(X_test)
 
-    mae, mse, r2 = evaluate_model(model, X_test, y_test)
-    cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
+        model.fit(X_train, y_train)
+        model_filename = 'trained_model.pkl'
+        joblib.dump(model, model_filename)
+        print("Model saved as:", model_filename)
 
-    return parameters
+        preprocessor_filename = 'preprocessor.pkl'
+        joblib.dump(preprocessor, preprocessor_filename)
+        print("Preprocessor saved as:", preprocessor_filename)
+
+        poly_filename = 'poly_features.pkl'
+        joblib.dump(poly, poly_filename)
+        print("Polynomial features saved as:", poly_filename)
+
+        evaluate_model(model, X_test, y_test)
+        cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
+        print("Cross Validation Score:", cv_scores)
+
+        mae, mse, r2 = evaluate_model(model, X_test, y_test)
+        cv_scores = cross_validate_model(model, X_encoded, y, best_degree)
+
+        return target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly
+    except KeyError as e:
+        print(f"KeyError: {e}")
+        raise
+
+    except Exception as e:
+        print(f"Error during training: {e}")
+        raise
 
 
 def load_model():
@@ -234,7 +262,7 @@ def load_model():
 
 if __name__ == "__main__":
     # main("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
-    parameters = train_model("I want to predict the global prices. i have access to the rank, name, platform,year, genre, publisherna sales and eu sales", "synthetic_vgsales_50.csv")
+    parameters = train_model("I want to predict the global prices. i have access to the rank, name, platform, year, genre, publisher sales and eu sales", "synthetic_vgsales_50.csv")
     # parameters = train_model("i wanna know the average amount of coffee consumed a year", 'coffee.csv')
     print("Model Trained Successfully!. Parameters are: ", parameters)
     print(summarize_training_process())

@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:provider/provider.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationID;
@@ -81,9 +82,23 @@ class _ChatPageState extends State<ChatPage> {
 
       if (fileBytes != null) {
         try {
+<<<<<<< HEAD
           await FirebaseStorage.instance
               .ref('uploads/$fileName')
               .putData(fileBytes);
+=======
+            final ref = FirebaseStorage.instance.ref('uploads/$fileName');
+            await ref.putData(fileBytes);
+
+            final downloadURL = await ref.getDownloadURL();
+
+            await sendFileToBackend(downloadURL, fileName);
+
+
+//           await FirebaseStorage.instance
+//               .ref('uploads/$fileName')
+//               .putData(fileBytes);
+>>>>>>> WORKS-FINAL-FINAL
         } catch (e) {
           print('Error uploading file: $e');
         }
@@ -91,6 +106,32 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+<<<<<<< HEAD
+=======
+  Future<void> sendFileToBackend(String downloadURL, String fileName) async {
+    const backendURL = 'http://127.0.0.1:5001/upload_file';
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendURL),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+        "file_url": downloadURL,
+        "file_name": fileName,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('File sent to backend successfully');
+      } else {
+        print('Failed to get response from the server.');
+      }
+    } catch (e) {
+      print('Error sending file to backend: $e');
+    }
+  }
+
+>>>>>>> WORKS-FINAL-FINAL
   void sendMessage() async {
     // Only send message if the text field is not empty
     if (_messageController.text.isNotEmpty) {

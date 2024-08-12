@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 2024/08/10-18:13:41.742 11a0 Reusing MANIFEST C:\Users\cecma\AppData\Local\Temp\flutter_tools.a43e1f17\flutter_tools_chrome_device.eb3d5cca\Default\Sync Data\LevelDB/MANIFEST-000001
 2024/08/10-18:13:41.745 11a0 Recovering log #3
 2024/08/10-18:13:41.745 11a0 Reusing old log C:\Users\cecma\AppData\Local\Temp\flutter_tools.a43e1f17\flutter_tools_chrome_device.eb3d5cca\Default\Sync Data\LevelDB/000003.log 
+=======
+2024/08/12-15:39:46.222 8107 Reusing MANIFEST /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/Sync Data/LevelDB/MANIFEST-000001
+2024/08/12-15:39:46.233 8107 Recovering log #3
+2024/08/12-15:39:46.233 8107 Reusing old log /private/var/folders/4d/_w2v0_wd3jbfchmyyzrynsg80000gn/T/flutter_tools.Vu6YlY/flutter_tools_chrome_device.kp3e15/Default/Sync Data/LevelDB/000003.log 
+>>>>>>> WORKS-FINAL-FINAL
