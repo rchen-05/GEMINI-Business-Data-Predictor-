@@ -82,11 +82,6 @@ class _ChatPageState extends State<ChatPage> {
 
       if (fileBytes != null) {
         try {
-<<<<<<< HEAD
-          await FirebaseStorage.instance
-              .ref('uploads/$fileName')
-              .putData(fileBytes);
-=======
             final ref = FirebaseStorage.instance.ref('uploads/$fileName');
             await ref.putData(fileBytes);
 
@@ -98,7 +93,6 @@ class _ChatPageState extends State<ChatPage> {
 //           await FirebaseStorage.instance
 //               .ref('uploads/$fileName')
 //               .putData(fileBytes);
->>>>>>> WORKS-FINAL-FINAL
         } catch (e) {
           print('Error uploading file: $e');
         }
@@ -106,8 +100,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-<<<<<<< HEAD
-=======
   Future<void> sendFileToBackend(String downloadURL, String fileName) async {
     const backendURL = 'http://127.0.0.1:5001/upload_file';
 
@@ -131,7 +123,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
->>>>>>> WORKS-FINAL-FINAL
   void sendMessage() async {
     // Only send message if the text field is not empty
     if (_messageController.text.isNotEmpty) {

@@ -3,7 +3,6 @@ from flask_cors import CORS # Add this import
 import google.generativeai as genai
 from csvToString import convert_csv_to_string
 import logging
-import trainer
 from getTargetVariable import get_target_variable
 from getParameters import get_all_relevant_parameters, get_user_parameters, get_all_parameters
 from getValues import get_values
