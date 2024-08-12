@@ -44,7 +44,7 @@ genai.configure(api_key=api_key)
 
 conversationID = None
 userID = None
-messages = None
+messages = []
 
 generation_config = {
     "temperature": 0.15,
