@@ -4,9 +4,9 @@ import os
 import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample
 
-# Check environment variable
-# api_key = "AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI"
-api_key = "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw"
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv('API_KEY')
 
 genai.configure(api_key=api_key)
 
@@ -26,7 +26,7 @@ def filter_chat(user_input):
     )
 
     prompt = f"""
-        "Analyse the input from the user. If the user is asking to train the model so it can predict some values later, return 0. If the user is giving the values for prediction return 1. If it is neither of these scenarios, return 2.\n\nYour output can either be 0,1, or 2. Nothing else.",
+        Analyse the input from the user. If the user is asking to predict some values and has included a target variable in the input, return 0. If the user is providing the values for prediction return 1. If it is neither of these scenarios, return 2. Your output can either be 0,1, or 2. Nothing else.
         "input: \"I want you to train the model.\"",
         "output: 0",
         "input: \"I want to know how many chicken breasts I need to order for next month.\"",

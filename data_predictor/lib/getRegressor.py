@@ -5,6 +5,10 @@ import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample
 import logging
 
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv('API_KEY')
+
 app = Flask(__name__)
 CORS(app)  # Enable CORS
 
@@ -12,7 +16,6 @@ CORS(app)  # Enable CORS
 logging.basicConfig(level=logging.INFO)
 
 # Set your API key here
-api_key = "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw"
 genai.configure(api_key=api_key)
 
 generation_config = {

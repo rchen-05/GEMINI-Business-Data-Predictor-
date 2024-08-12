@@ -4,9 +4,11 @@ import os
 import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample
 
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv('API_KEY')
+
 # Check environment variable
-# api_key = "AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI"
-api_key = "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw"
 
 genai.configure(api_key=api_key)
 
@@ -41,7 +43,7 @@ def get_values(user_input, parameters):
         "output: 4,Ryan,Tetra,2007",
         "input: User input: \"The country is Malaysia, this was in 2010. Coffee consumption is 60 and population is 70.\"\nParameters: Country,Year,Coffee Consumption (kg per capita per year),Population (millions)",
         "output: Malaysia,2010,60,70",
-        "input: User input: \"Aisha is a  60kg female\"\nParameters: Name,Gender,Weight",
+        "input: User input: \"Aisha is a 60kg female\"\nParameters: Name,Gender,Weight",
         "output: Aisha,female,60",
 
         "input: User input: {user_input}\nAvailable parameters:\n{parameters}",
@@ -55,4 +57,5 @@ def get_values(user_input, parameters):
     values = [try_convert(value.strip()) for value in values]
 
     return values
+
 

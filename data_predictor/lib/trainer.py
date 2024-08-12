@@ -20,6 +20,7 @@ from getParameters import get_user_parameters, get_all_parameters, get_all_relev
 from getValues import get_values
 
 
+
 # Declare global variables
 target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores = None, None, None, None, None, None, None, None
 model, preprocessor, poly = None, None, None

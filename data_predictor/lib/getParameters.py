@@ -5,8 +5,9 @@ import google.generativeai as genai
 from csvToString import convert_csv_to_string, get_smaller_sample
 
 # Check environment variable
-# api_key = "AIzaSyCZkAAwGcd-TEIOuOOvYsZjXJWzduKY6qI"
-api_key = "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw"
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv('API_KEY')
 
 genai.configure(api_key=api_key)
 
@@ -69,53 +70,6 @@ def get_all_relevant_parameters(all_parameters, target_variable):
 
 
 # The parameters that the user has access to
-# def get_user_parameters(user_input, all_relevant_parameters):
-#     print("Getting user parameters")
-#     model = genai.GenerativeModel(
-#         model_name="gemini-1.0-pro",
-#         generation_config=generation_config,
-#     )
-#
-#     prompt = f"""
-#         "Based on the input text, select the parameters the user has access to from the given list. The parameters that you give should ONLY be from the list of available parameters, so if the user gives a parameter but that parameter is not included in the list, do NOT include it. Your output should only be a string consisting of each parameter separated by a comma, for example \"x,y,z\".",
-#
-#         "input: I have data for the make, model, type of transmission and the car's condition\nAvailable parameters: \nMake,Model,Year,EngineSize,Transmission,FuelType,Mileage,Color,Condition,NumberOfOwners,AccidentHistory,ServiceHistory,MarketDemand",
-#         "output: Make,Model,Transmission,Condition",
-#
-#         "input: department, job title, level of education, whether theyre married or not, retirement status\nAvailable parameters: \nDepartment,JobTitle,YearsOfExperience,EducationLevel,PerformanceScore,Gender,Age,Region,MaritalStatus",
-#         "output: Department,JobTitle,EducationLevel,MaritalStatus",
-#
-#         "input: I have platform, year, genre, type of game, and console\nAvailable parameters: \nRank,Name,Platform,Year,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales",
-#         "output: Platform,Year,Genre",
-#
-#         "input: The only thing I don't have access to is the type of coffee consumed. I have everything else though.\nAvailable parameters: \nCountry,Year,Coffee Consumption (kg per capita per year),Type of Coffee Consumed,Population (millions)",
-#         "output: Country,Year,Coffee Consumption (kg per capita per year),Population (millions)",
-#
-#         "input: {user_input}\nAvailable parameters: {all_relevant_parameters}",
-#         "output: ",
-#         """
-#
-#     response = model.generate_content([prompt])x
-#     print("response: ", response)
-#
-#     response_text = response.text if hasattr(response, 'text') else str(response)
-#     user_parameters = response_text.strip().strip('"')
-#
-#     output_start = user_parameters.rfind("output: ")
-#     if output_start != -1:
-#         user_parameters = user_parameters[output_start + 7:].strip()
-#
-#
-#     # Split the parameters into a list
-#     user_parameters_list = [param.strip() for param in user_parameters.split(",") if param.strip()]
-#
-#     all_relevant_parameters_list = all_relevant_parameters.split(",")
-#     user_parameters_list = [param for param in user_parameters_list if param in all_relevant_parameters_list]
-#
-#     # user_parameters = str(response.parts[0])[7:-2]
-#     print("User Parameters list: ", user_parameters_list)
-#     return user_parameters_list
-
 def get_user_parameters(user_input, all_relevant_parameters):
     print("Getting user parameters")
     model = genai.GenerativeModel(
@@ -124,52 +78,31 @@ def get_user_parameters(user_input, all_relevant_parameters):
     )
 
     prompt = f"""
-        Based on the input text, select the parameters the user has access to from the given list of available parameters. Only include parameters that are in the available parameters list. Your output should be a string of parameters separated by commas, for example "x,y,z".
-        
-        Examples:
-        1. Input: I have data for the make, model, type of transmission and the car's condition
-           Available parameters: Make,Model,Year,EngineSize,Transmission,FuelType,Mileage,Color,Condition,NumberOfOwners,AccidentHistory,ServiceHistory,MarketDemand
-           Output: Make,Model,Transmission,Condition
-        
-        2. Input: department, job title, level of education, whether they're married or not, retirement status
-           Available parameters: Department,JobTitle,YearsOfExperience,EducationLevel,PerformanceScore,Gender,Age,Region,MaritalStatus
-           Output: Department,JobTitle,EducationLevel,MaritalStatus
-        
-        3. Input: I have platform, year, genre, type of game, and console
-           Available parameters: Rank,Name,Platform,Year,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales
-           Output: Platform,Year,Genre
-        
-        Now, please process the following:
-        
-        Input: Use all columns to predict the last column (the last column will be the dependent variable, and the rest will be independent variables).
-        Available parameters: {all_relevant_parameters}
-        
-        Output:
+        "Based on the input text, select the parameters the user has access to from the given list. The parameters that you give should ONLY be from the list of available parameters, so if the user gives a parameter but that parameter is not included in the list, do NOT include it. Your output should only be a string consisting of each parameter separated by a comma, for example \"x,y,z\".",
+
+        "input: I have data for the make, model, type of transmission and the car's condition\nAvailable parameters: \nMake,Model,Year,EngineSize,Transmission,FuelType,Mileage,Color,Condition,NumberOfOwners,AccidentHistory,ServiceHistory,MarketDemand",
+        "output: Make,Model,Transmission,Condition",
+
+        "input: department, job title, level of education, whether theyre married or not, retirement status\nAvailable parameters: \nDepartment,JobTitle,YearsOfExperience,EducationLevel,PerformanceScore,Gender,Age,Region,MaritalStatus",
+        "output: Department,JobTitle,EducationLevel,MaritalStatus",
+
+        "input: I have platform, year, genre, type of game, and console\nAvailable parameters: \nRank,Name,Platform,Year,Genre,Publisher,NA_Sales,EU_Sales,JP_Sales,Other_Sales,Global_Sales",
+        "output: Platform,Year,Genre",
+
+        "input: The only thing I don't have access to is the type of coffee consumed. I have everything else though.\nAvailable parameters: \nCountry,Year,Coffee Consumption (kg per capita per year),Type of Coffee Consumed,Population (millions)",
+        "output: Country,Year,Coffee Consumption (kg per capita per year),Population (millions)",
+
+        "input: {user_input}\nAvailable parameters: {all_relevant_parameters}",
+        "output: ",
         """
 
-    try:
-        response = model.generate_content([prompt])
-        print("Full AI response:", response.text)
+    response = model.generate_content([prompt])
 
-        # Extract only the output part
-        output_lines = response.text.strip().split('\n')
-        user_parameters = output_lines[-1] if output_lines else ""
+    response_text = str(response.parts[0])[7:-2]
+    user_parameters = response_text.split(',')
 
-        # Clean up the output
-        user_parameters = user_parameters.strip().strip('"')
-        user_parameters_list = [param.strip() for param in user_parameters.split(",") if param.strip()]
+    print("User Parameters list: ", user_parameters)
+    return user_parameters
 
-        # Ensure all parameters are in the all_relevant_parameters list
-        all_relevant_parameters_list = all_relevant_parameters.split(",")
 
-        if not user_parameters_list or len(user_parameters_list) == len(all_relevant_parameters_list):
-            user_parameters_list = all_relevant_parameters_list[:-1]
-        else:
-            user_parameters_list = [param for param in user_parameters_list if param in all_relevant_parameters_list]
 
-        # user_parameters_list = [param for param in user_parameters_list if param in all_relevant_parameters_list]
-        print("Extracted user parameters:", user_parameters_list)
-        return user_parameters_list
-    except Exception as e:
-        print(f"Error in get_user_parameters: {str(e)}")
-        return all_relevant_parameters.split(",")[-1]

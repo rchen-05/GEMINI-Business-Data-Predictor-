@@ -12,14 +12,17 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import pickle
 import requests
+import os
 import io
+from trainer import predict
 
 target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = None, None, \
                                                                     None, None, None, None, None, None, None, None, None
 
 # Initialize Firebase
 # Path to service account key JSON file
-cred = credentials.Certificate("ServiceAccountKey.json")
+cred = credentials.Certificate('ServiceAccountKey.json')
+
 # Initialize the firebase app
 firebase_admin.initialize_app(cred)
 # Get a Firestore client
@@ -32,7 +35,10 @@ CORS(app)  # Enable CORS
 logging.basicConfig(level=logging.INFO)
 
 # Daniel API key dont remove just make another one 
-api_key = "AIzaSyAw0O3QQZalaBbdhwaSpYREwBut_kP3wkw"
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.getenv('API_KEY')
+
 genai.configure(api_key=api_key)
 
 generation_config = {
@@ -294,44 +300,7 @@ def chat_route():
     return jsonify({"response": response})
 
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json()
-    user_input = data.get('user_input')
 
-    if not user_input:
-        return jsonify({"error": "No user input provided"}), 400
-    try:
-        doc = db.collection('models').document('trained_model').get()
-        if not doc.exists:
-            return jsonify({"error": "No trained model has been found in firebase"}), 400
-
-        model_data = doc.to_dict()
-        trained_model = pickle.loads(model_data['model'])
-        preprocessor = pickle.loads(model_data['preprocessor'])
-        poly = pickle.loads(model_data['poly'])
-        parameters = model_data['parameters']
-        target_variable = model_data['target_variable']
-
-        if trained_model is None:
-            return jsonify({"error": "Model not trained yet"}), 400
-
-        values = get_values(user_input, ','.join(parameters))
-        user_data = dict(zip(parameters, values))
-        prediction = trainer.predict(user_data, trained_model, parameters, preprocessor, poly)
-        return jsonify({target_variable: prediction})
-    except Exception as e:
-        logging.error(f"A prediction error occurred: {str(e)}")
-        return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
-
-    # try:
-    #     values = get_values(user_input, ','.join(parameters))
-    #     user_data = dict(zip(parameters, values))
-    #     prediction = trainer.predict(user_data, trained_model, parameters, preprocessor, poly)
-    #     return jsonify({target_variable: prediction})
-    # except Exception as e:
-    #     logging.error(f"A prediction error occurred: {str(e)}")
-    #     return jsonify({"error": f"A prediction error occurred: {str(e)}"}), 400
 
 
 def generate_response(user_input):
@@ -343,19 +312,21 @@ def generate_response(user_input):
 
         # check if file has been uploaded
         if file_uploaded == False:
-            return "Please upload a file first"
+            return "Please upload a file first. Then, tell me the target variable you want to predict and the parameters you have access to. Once model is trained, give me the values of the indepedent variables. I will then predict the target variable for you."
+        print(uploaded_file_path)
+
         
         if option == '0':
             # change coffee.csv      ------- ERROR HERE - NEED TO PASS IN CORRECT FILE UPLOADED BY USER -------
             print("Choosing option 0")
-            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, model, preprocessor, poly = trainer.train_model(user_input, uploaded_file_path)
+            target_variable, parameters, best_split, best_degree, mae, mse, r2, cv_scores, trained_model, preprocessor, poly = trainer.train_model(user_input, uploaded_file_path)
             # parameters = train_model("I want to predict the global prices. i have access to the rank, name, platform, year, genre, publisher sales and eu sales", "synthetic_vgsales_50.csv")
             return trainer.summarize_training_process()
         elif option == '1':
             print("Choosing option 1")
             user_values = get_values(user_input, parameters)
             print("User values are: ", user_values)
-            prediction = trainer.predict(file_uploaded, trained_model, parameters, preprocessor, poly)
+            prediction = predict(user_values, trained_model, parameters, preprocessor, poly)
             return f"Prediction: {prediction}"
         elif option == '2':
             print("Choosing option 2")
