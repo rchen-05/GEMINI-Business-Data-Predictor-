@@ -269,7 +269,7 @@ def train_and_save_model(input_text, file_uploaded):
 @app.route('/train', methods=['POST'])
 def train_model():
     data = request.get_json()
-    input_text = data.get('input_test')
+    input_text = data.get('input_text')
     input_file = data.get('input_file')
 
     if not input_text or not input_file:
